@@ -1,0 +1,230 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Plus, Edit, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+
+export default function AuthorsPage() {
+  const [authors, setAuthors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+
+  useEffect(() => {
+    loadAuthors()
+  }, [page])
+
+  const loadAuthors = async () => {
+    try {
+      const response = await fetch(`/api/authors?page=${page}&limit=12`)
+      const result = await response.json()
+      if (!response.ok) throw new Error(result?.error || 'Failed to load authors')
+      setAuthors(result?.data?.authors || [])
+      setPages(result?.data?.pagination?.pages || 1)
+    } catch (error) {
+      console.error('Error loading authors:', error)
+      setAuthors([])
+      setPages(1)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteAuthor = async (authorId, authorName) => {
+    if (!confirm(`Are you sure you want to delete ${authorName}? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Use API proxy instead of direct Supabase client
+      const response = await fetch('/api/authors', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: authorId }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Failed to delete author')
+
+      alert('Author deleted successfully!')
+      loadAuthors()
+    } catch (error) {
+      console.error('Error deleting author:', error)
+      alert('Failed to delete author: ' + error.message)
+    }
+  }
+
+  const inviteAuthor = async (e) => {
+    e.preventDefault()
+    if (!inviteEmail.trim()) return
+    setInviteLoading(true)
+    try {
+      const response = await fetch('/api/admin/invite-author', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          name: inviteName.trim(),
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result?.error || 'Failed to invite author')
+
+      alert(result?.data?.existing ? 'Existing user converted/confirmed as author.' : 'Author invite sent successfully.')
+      setInviteEmail('')
+      setInviteName('')
+      loadAuthors()
+    } catch (error) {
+      alert(error.message || 'Failed to invite author')
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Authors</h1>
+          <p className="text-gray-600 mt-2">Manage content creators on your platform</p>
+        </div>
+        <Link href="/dashboard/authors/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New Author
+          </Button>
+        </Link>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Invite Author</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={inviteAuthor} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-1">
+              <Label htmlFor="invite_name">Name</Label>
+              <Input
+                id="invite_name"
+                name="invite_name"
+                value={inviteName}
+                onChange={(e) => setInviteName(e.target.value)}
+                placeholder="Author name"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label htmlFor="invite_email">Email</Label>
+              <Input
+                id="invite_email"
+                name="invite_email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="author@example.com"
+                required
+              />
+            </div>
+            <div className="md:col-span-1 flex items-end">
+              <Button type="submit" className="w-full" disabled={inviteLoading}>
+                {inviteLoading ? 'Sending...' : 'Send Invite'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {authors.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {authors.map((author) => (
+            <Card key={author.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-3 flex-1">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={author.avatar_url} />
+                      <AvatarFallback>
+                        {author.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-base">{author.name}</CardTitle>
+                      {author.title && (
+                        <p className="text-xs text-gray-500">{author.title}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Link href={`/dashboard/authors/${author.id}/edit`}>
+                      <Button size="sm" variant="ghost">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => deleteAuthor(author.id, author.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              {author.bio && (
+                <CardContent>
+                  <p className="text-sm text-gray-600 line-clamp-2">{author.bio}</p>
+                </CardContent>
+              )}
+              {(author.email || author.users?.email) && (
+                <CardContent>
+                  <p className="text-xs text-gray-500">{author.email || author.users?.email}</p>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500 mb-4">No authors found.</p>
+            <Link href="/dashboard/authors/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create First Author
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {pages > 1 && (
+        <div className="mt-6 flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            Prev
+          </Button>
+          <span className="text-sm text-gray-500">Page {page} of {pages}</span>
+          <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))}>
+            Next
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
