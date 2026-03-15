@@ -127,10 +127,21 @@ export default async function TopicPage({ params }) {
   ])
 
   const matched = articles || []
-  if (matched.length < MIN_MATCH_COUNT) notFound()
+  const isThinTopic = matched.length < MIN_MATCH_COUNT
+  let fallbackArticles = []
+
+  if (isThinTopic) {
+    const { data: latestArticles } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, featured_image_url, published_at, categories(name, slug), authors(name)')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(12)
+    fallbackArticles = latestArticles || []
+  }
 
   const scoreMap = new Map((engagementRows || []).map((row) => [row.article_id, (row.views || 0) + (row.likes || 0) * 3 + (row.shares || 0) * 5]))
-  const trending = [...matched]
+  const trending = (isThinTopic ? fallbackArticles : matched)
     .map((item) => ({ ...item, _score: scoreMap.get(item.id) || 0 }))
     .sort((a, b) => b._score - a._score)
 
@@ -149,7 +160,13 @@ export default async function TopicPage({ params }) {
       <main className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white capitalize">{keyword}</h1>
-          <p className="text-gray-600 dark:text-gray-400">Latest coverage and explainers around {keyword}</p>
+          {isThinTopic ? (
+            <p className="text-gray-600 dark:text-gray-400">
+              We are still building coverage for {keyword}. Here are the latest stories in the meantime.
+            </p>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">Latest coverage and explainers around {keyword}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
