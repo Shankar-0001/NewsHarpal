@@ -58,7 +58,6 @@ export default async function HomePage() {
           title,
           slug,
           excerpt,
-          content,
           featured_image_url,
           published_at,
           authors (name),
@@ -247,7 +246,7 @@ export default async function HomePage() {
                                 </div>
                               </div>
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                {calculateReadingTime(article.content || article.excerpt || '')} min read
+                                {calculateReadingTime(article.excerpt || article.title || '')} min read
                               </p>
                             </CardContent>
                           </div>
