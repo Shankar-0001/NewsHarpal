@@ -72,6 +72,12 @@ export default function DashboardNav({ user, userRole }) {
       href: '/dashboard/web-stories',
       icon: Clapperboard,
     },
+    {
+      title: 'Footer Pages',
+      href: '/dashboard/footer',
+      icon: FileText,
+      adminOnly: true,
+    },
   ]
 
   const filteredItems = navItems.filter(item => !item.adminOnly || userRole === 'admin')
