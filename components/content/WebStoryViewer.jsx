@@ -79,7 +79,7 @@ export default function WebStoryViewer({ story, articleUrl }) {
         {current?.image ? (
           <Image
             src={current.image}
-            alt={current.headline || story.title}
+            alt={current.image_alt || current.headline || story.title}
             fill
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 420px"
@@ -152,4 +152,5 @@ export default function WebStoryViewer({ story, articleUrl }) {
     </div>
   )
 }
+
 

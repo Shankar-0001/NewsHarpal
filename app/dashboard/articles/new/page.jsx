@@ -50,6 +50,7 @@ export default function ArticleEditorPage() {
   const [categoryId, setCategoryId] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
   const [featuredImage, setFeaturedImage] = useState('')
+  const [featuredImageAlt, setFeaturedImageAlt] = useState('')
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDescription, setSeoDescription] = useState('')
   const [status, setStatus] = useState('published')
@@ -264,6 +265,7 @@ export default function ArticleEditorPage() {
         content_json: content.json,
         category_id: categoryId || null,
         featured_image_url: featuredImage || null,
+        featured_image_alt: featuredImageAlt?.trim() || null,
         seo_title: seoTitle || title,
         seo_description: seoDescription || excerpt,
         status: finalStatus,
@@ -504,10 +506,23 @@ export default function ArticleEditorPage() {
                 const file = e.target.files?.[0]
                 if (file) {
                   const url = await handleImageUpload(file)
-                  if (url) setFeaturedImage(url)
+                  if (url) {
+                    setFeaturedImage(url)
+                    if (!featuredImageAlt && title) {
+                      setFeaturedImageAlt(title)
+                    }
+                  }
                 }
               }}
             />
+            <div className="mt-4">
+              <Label>Alt Text</Label>
+              <Input
+                value={featuredImageAlt}
+                onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                placeholder="Describe the image for accessibility and SEO"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -516,7 +531,11 @@ export default function ArticleEditorPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="relative w-full h-48 rounded-lg overflow-hidden border">
-                <img src={featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                <img
+                  src={featuredImage}
+                  alt={featuredImageAlt || title || 'Featured image'}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </CardContent>
           </Card>

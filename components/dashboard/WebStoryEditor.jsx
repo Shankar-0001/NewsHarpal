@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 function emptySlide() {
   return {
     image: '',
+    image_alt: '',
     headline: '',
     seo_description: '',
     cta_text: '',
@@ -235,9 +236,24 @@ export default function WebStoryEditor({ mode = 'create', storyId = null }) {
                 onChange={async (e) => {
                   const file = e.target.files?.[0]
                   const url = await uploadMedia(file)
-                  if (url) setSlide(idx, { image: url })
+                  if (url) {
+                    setSlide(idx, { image: url })
+                    if (!slide.image_alt && slide.headline) {
+                      setSlide(idx, { image_alt: slide.headline })
+                    }
+                  }
                 }}
               />
+              <div className="mt-2">
+                <Label htmlFor={`slide_image_alt_${idx}`}>Alt Text</Label>
+                <Input
+                  id={`slide_image_alt_${idx}`}
+                  name={`slide_image_alt_${idx}`}
+                  value={slide.image_alt || ''}
+                  onChange={(e) => setSlide(idx, { image_alt: e.target.value })}
+                  placeholder="Describe the image for accessibility and SEO"
+                />
+              </div>
             </div>
 
             <div>

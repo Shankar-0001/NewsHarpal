@@ -41,7 +41,7 @@ export async function PATCH(request, { params }) {
             .from('articles')
             .update(updatePayload)
             .eq('id', params.id)
-            .select('id, title, slug, excerpt, content, content_json, featured_image_url, status, category_id, author_id, seo_title, seo_description, published_at, created_at, updated_at')
+            .select('id, title, slug, excerpt, content, content_json, featured_image_url, featured_image_alt, status, category_id, author_id, seo_title, seo_description, published_at, created_at, updated_at')
             .single()
 
         if (error) {

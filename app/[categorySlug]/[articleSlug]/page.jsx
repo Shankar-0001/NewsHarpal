@@ -61,6 +61,7 @@ export async function generateMetadata({ params }) {
         seo_title,
         seo_description,
         featured_image_url,
+        featured_image_alt,
         published_at,
         updated_at,
         status,
@@ -150,6 +151,7 @@ export default async function ArticlePage({ params }) {
       content,
       content_json,
       featured_image_url,
+      featured_image_alt,
       published_at,
       updated_at,
       status,
@@ -422,10 +424,10 @@ export default async function ArticlePage({ params }) {
               <div className="mb-8 mx-auto max-w-[720px] rounded-xl overflow-hidden relative w-full aspect-video md:aspect-[21/9]">
                 <Image
                   src={article.featured_image_url}
-                  alt={article.title}
+                  alt={article.featured_image_alt || article.title}
                   fill
                   className="object-cover"
-                  priority
+                  loading="lazy"
                   sizes="(max-width: 768px) 100vw, 720px"
                 />
               </div>

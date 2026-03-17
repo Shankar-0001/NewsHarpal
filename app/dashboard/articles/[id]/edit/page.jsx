@@ -58,6 +58,7 @@ export default function EditArticlePage() {
     const [categoryId, setCategoryId] = useState('')
     const [selectedTags, setSelectedTags] = useState([])
     const [featuredImage, setFeaturedImage] = useState('')
+    const [featuredImageAlt, setFeaturedImageAlt] = useState('')
     const [seoTitle, setSeoTitle] = useState('')
     const [seoDescription, setSeoDescription] = useState('')
     const [status, setStatus] = useState('published')
@@ -130,6 +131,7 @@ export default function EditArticlePage() {
             setCategoryId(articleData.category_id || '')
             setSelectedAuthorId(articleData.author_id || authorData?.id || '')
             setFeaturedImage(articleData.featured_image_url || '')
+            setFeaturedImageAlt(articleData.featured_image_alt || '')
             setSeoTitle(articleData.seo_title || '')
             setSeoDescription(articleData.seo_description || '')
             setStatus(articleData.status || 'published')
@@ -308,6 +310,7 @@ export default function EditArticlePage() {
                 content_json: content.json,
                 category_id: categoryId || null,
                 featured_image_url: featuredImage || null,
+                featured_image_alt: featuredImageAlt?.trim() || null,
                 seo_title: seoTitle || title,
                 seo_description: seoDescription || excerpt,
                 status: finalStatus,
@@ -578,6 +581,14 @@ export default function EditArticlePage() {
                             value={featuredImage}
                             onChange={(e) => setFeaturedImage(e.target.value)}
                         />
+                        <div className="mt-4">
+                            <Label>Alt Text</Label>
+                            <Input
+                                value={featuredImageAlt}
+                                onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                                placeholder="Describe the image for accessibility and SEO"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
