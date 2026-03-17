@@ -255,6 +255,7 @@ export default function ArticleEditorPage() {
     setError(null)
 
     try {
+      const finalStatus = userRole === 'author' ? 'pending' : newStatus
       const articleData = {
         title: title.trim(),
         slug: slug || slugify(title, { lower: true, strict: true }),
@@ -265,8 +266,8 @@ export default function ArticleEditorPage() {
         featured_image_url: featuredImage || null,
         seo_title: seoTitle || title,
         seo_description: seoDescription || excerpt,
-        status: newStatus,
-        published_at: newStatus === 'published' ? new Date().toISOString() : null,
+        status: finalStatus,
+        published_at: finalStatus === 'published' ? new Date().toISOString() : null,
         author_id: selectedAuthorId || authorId,
       }
 
@@ -311,7 +312,7 @@ export default function ArticleEditorPage() {
 
       toast({
         title: 'Success',
-        description: statusMessages[newStatus] || 'Article created successfully',
+        description: statusMessages[finalStatus] || 'Article created successfully',
       })
 
       router.push('/dashboard/articles')

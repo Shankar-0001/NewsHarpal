@@ -8,8 +8,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import Image from 'next/image'
 import PublicHeader from '@/components/layout/PublicHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import StructuredData, { NewsArticleSchema } from '@/components/seo/StructuredData'
+import StructuredData from '@/components/seo/StructuredData'
 import { InArticleAd, MobileStickyAd } from '@/components/ads/AdComponent'
 import { generateArticleSchemas } from '@/lib/seo-utils'
 import { calculateReadingTime, generateSixtySecondSummary, generateAeoSnapshot } from '@/lib/content-utils'
@@ -348,9 +347,7 @@ export default async function ArticlePage({ params }) {
         <article className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 pb-16 md:pb-8">
           <ReadingProgressBar />
           <StickyShareBar articleUrl={articleUrl} articleTitle={article.title} />
-          <div className="mb-4 text-sm text-muted-foreground hidden">
-            <Breadcrumb items={breadcrumbItems} />
-          </div>
+          {/* Breadcrumb UI intentionally omitted; schema is emitted via JSON-LD */}
 
           <Card className="p-4 md:p-6 lg:p-8 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
             <div className="mx-auto max-w-[720px]">

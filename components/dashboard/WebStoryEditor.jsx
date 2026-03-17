@@ -263,7 +263,7 @@ export default function WebStoryEditor({ mode = 'create', storyId = null }) {
                 </div>
                 <div>
                   <Label htmlFor={`slide_cta_url_${idx}`}>CTA Website URL (Slide 11)</Label>
-                  <Input id={`slide_cta_url_${idx}`} name={`slide_cta_url_${idx}`} value={slide.cta_url || ''} onChange={(e) => setSlide(idx, { cta_url: e.target.value })} placeholder="https://news-harpal.vercel.app/" />
+                  <Input id={`slide_cta_url_${idx}`} name={`slide_cta_url_${idx}`} value={slide.cta_url || ''} onChange={(e) => setSlide(idx, { cta_url: e.target.value })} placeholder="https://ekahnews.com/" />
                 </div>
               </>
             )}
