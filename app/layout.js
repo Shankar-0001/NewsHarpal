@@ -26,6 +26,7 @@ export default function RootLayout({ children }) {
   const adsenseScriptSrc = adsenseClientId
     ? `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`
     : null
+  const gaMeasurementId = 'G-8HXXQFFZCH'
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -33,6 +34,18 @@ export default function RootLayout({ children }) {
         <meta name="robots" content="max-image-preview:large" />
       </head>
       <body className="font-sans">
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${gaMeasurementId}');
+          `}
+        </Script>
         {/* Lazy-load third-party ad script to protect initial paint/Core Web Vitals */}
         {adsEnabled && adsenseScriptSrc && (
           <Script
