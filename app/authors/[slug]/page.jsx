@@ -203,6 +203,7 @@ export default async function AuthorProfilePage({ params }) {
             name: author.name,
             description: author.bio || undefined,
             image: author.avatar_url || undefined,
+            jobTitle: author.title || undefined,
             url: authorCanonicalUrl,
             sameAs: [
                 author.social_links?.twitter,
