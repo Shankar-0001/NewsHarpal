@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import KeywordInput from '@/components/dashboard/KeywordInput'
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export default function ArticleEditorPage() {
   const [featuredImageAlt, setFeaturedImageAlt] = useState('')
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDescription, setSeoDescription] = useState('')
+  const [keywords, setKeywords] = useState([])
   const [status, setStatus] = useState('published')
 
   // Options
@@ -268,6 +270,7 @@ export default function ArticleEditorPage() {
         featured_image_alt: featuredImageAlt?.trim() || null,
         seo_title: seoTitle || title,
         seo_description: seoDescription || excerpt,
+        keywords,
         status: finalStatus,
         published_at: finalStatus === 'published' ? new Date().toISOString() : null,
         author_id: selectedAuthorId || authorId,
@@ -620,6 +623,10 @@ export default function ArticleEditorPage() {
                 {seoDescription.length}/160 characters
               </p>
             </div>
+            <KeywordInput
+              value={keywords}
+              onChange={setKeywords}
+            />
           </CardContent>
         </Card>
 

@@ -1,39 +1,66 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Youtube, Linkedin, Mail } from 'lucide-react'
+import { ArrowRight, Facebook, Instagram, Youtube, Linkedin, Mail, Sparkles } from 'lucide-react'
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-gray-900 dark:bg-black text-white mt-12">
-      <div className="w-full max-w-6xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-xl font-bold mb-3">EkahNews</h3>
-            <p className="text-gray-400">Your trusted source for news and insights.</p>
-            <div className="mt-4">
-              <p className="text-sm font-semibold text-gray-300 mb-2">Newsletter</p>
-              <div className="flex items-center gap-2">
+    <footer className="mt-16 border-t border-slate-200 bg-[linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] text-white dark:bg-black">
+      <div className="w-full max-w-6xl mx-auto px-4 py-12">
+        <div className="mb-10 rounded-[28px] border border-white/10 bg-white/5 p-6 md:p-8 backdrop-blur-sm">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-center">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-cyan-400 to-sky-300 text-slate-950 shadow-lg">
+                  <span className="text-lg font-black">E</span>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold tracking-tight">EkahNews</h3>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Modern Newsroom</p>
+                </div>
+              </div>
+              <p className="max-w-2xl text-slate-300 leading-7">
+                Trusted reporting, explainers, trending topics, and web stories presented with a cleaner digital-first newsroom experience.
+              </p>
+            </div>
+
+            <div className="rounded-[24px] border border-white/10 bg-slate-950/60 p-5">
+              <div className="flex items-center gap-2 mb-3 text-cyan-300">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-xs font-semibold uppercase tracking-[0.24em]">Newsletter</p>
+              </div>
+              <p className="text-sm text-slate-300 mb-4">Get a compact weekly brief with the biggest stories and explainers.</p>
+              <div className="flex flex-col sm:flex-row items-stretch gap-2">
                 <div className="relative flex-1">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="email"
                     placeholder="you@example.com"
-                    className="w-full rounded-md bg-gray-800 text-white placeholder:text-gray-500 border border-gray-700 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full rounded-full bg-white/95 text-slate-900 placeholder:text-slate-500 border border-white/30 pl-9 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <button
                   type="button"
-                  className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold hover:bg-blue-700"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold hover:bg-blue-700"
                 >
                   Subscribe
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Optional: we send weekly highlights.</p>
+              <p className="text-xs text-slate-500 mt-3">Optional: weekly highlights only.</p>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <h4 className="font-semibold mb-3 text-white">About</h4>
+            <p className="text-slate-400 text-sm leading-6">
+              EkahNews focuses on readable, credible, and fast-moving coverage across major categories.
+            </p>
           </div>
 
           <div>
             <h4 className="font-semibold mb-3">Company</h4>
-            <ul className="space-y-2 text-gray-400">
+            <ul className="space-y-2 text-slate-400">
               <li><Link href="/about-us" className="hover:text-white">About</Link></li>
               <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
               <li><Link href="/editorial-policy" className="hover:text-white">Editorial Policy</Link></li>
@@ -44,7 +71,7 @@ export default function SiteFooter() {
 
           <div>
             <h4 className="font-semibold mb-3">Resources</h4>
-            <ul className="space-y-2 text-gray-400">
+            <ul className="space-y-2 text-slate-400">
               <li><Link href="/sitemap.xml" className="hover:text-white">Sitemap</Link></li>
               <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>

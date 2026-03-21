@@ -3,6 +3,7 @@ import { apiResponse, logger } from '@/lib/api-utils'
 import { validateArticle, ValidationError } from '@/lib/validation'
 import { requireAuth, getUserAuthorId } from '@/lib/auth-utils'
 import { sanitizeRichText } from '@/lib/security-utils'
+import { normalizeManualKeywords } from '@/lib/keywords'
 
 export async function POST(request) {
     const requestId = 'POST-article'
@@ -14,6 +15,7 @@ export async function POST(request) {
 
         // 2. Parse & validate
         const articleData = await request.json()
+        articleData.keywords = normalizeManualKeywords(articleData.keywords || [])
         validateArticle(articleData)
 
         // 3. Resolve author ID (admins may assign an explicit author_id)
@@ -44,8 +46,9 @@ export async function POST(request) {
                 ...articleData,
                 author_id: authorId,
                 content: sanitizedContent,
+                keywords: articleData.keywords,
             }])
-            .select('id, title, slug, excerpt, content, content_json, featured_image_url, featured_image_alt, status, category_id, author_id, seo_title, seo_description, published_at, created_at, updated_at')
+            .select('id, title, slug, excerpt, content, content_json, featured_image_url, featured_image_alt, keywords, status, category_id, author_id, seo_title, seo_description, published_at, created_at, updated_at')
             .single()
 
         if (error) {

@@ -70,6 +70,43 @@ export async function POST(request) {
   }
 }
 
+export async function PATCH(request) {
+  try {
+    await requireAdmin()
+    const admin = createAdminClient()
+    const { id, name, slug, description } = await request.json()
+
+    if (!id) {
+      return apiResponse(400, null, 'Category ID is required')
+    }
+
+    if (!name || !slug) {
+      return apiResponse(400, null, 'Name and slug are required')
+    }
+
+    const { data, error } = await admin
+      .from('categories')
+      .update({
+        name,
+        slug,
+        description: description || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('id, name, slug, description, created_at, updated_at')
+      .single()
+
+    if (error) return apiResponse(400, null, error.message)
+    return apiResponse(200, { category: data })
+  } catch (error) {
+    if (error.name === 'AuthError') {
+      const status = error.message.includes('Admin') ? 403 : 401
+      return apiResponse(status, null, error.message)
+    }
+    return apiResponse(500, null, error.message || 'Failed to update category')
+  }
+}
+
 export async function DELETE(request) {
   try {
     await requireAdmin()

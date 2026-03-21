@@ -15,9 +15,10 @@ export default function WebStoryViewer({ story, articleUrl }) {
   const [touchStartX, setTouchStartX] = useState(null)
 
   const authorName = story?.authors?.name || 'EkahNews'
-  const current = slides[index]
-  const isCtaSlide = index === 10
-  const isWhatsappSlide = index === 11
+  const current = slides[index] || {}
+  const isCoverSlide = index === 0
+  const isWhatsappSlide = Boolean(current?.whatsapp_group_url)
+  const isReadMoreSlide = !isWhatsappSlide && Boolean(current?.cta_text || current?.cta_url)
   const progressWidth = `${((index + 1) / Math.max(1, slides.length)) * 100}%`
   const ctaHref = current?.cta_url || articleUrl || '#'
   const ctaLinkProps = getAnchorPropsForHref(ctaHref)
@@ -60,12 +61,12 @@ export default function WebStoryViewer({ story, articleUrl }) {
 
   return (
     <div className="mx-auto max-w-sm md:max-w-md lg:max-w-lg">
-      <div className="mb-3 h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded">
+      <div className="mb-3 h-1.5 w-full rounded bg-gray-200 dark:bg-gray-700">
         <div className="h-full rounded bg-blue-600 transition-all" style={{ width: progressWidth }} />
       </div>
 
       <div
-        className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-black aspect-[9/16]"
+        className="relative overflow-hidden rounded-2xl border border-gray-200 bg-black aspect-[9/16] dark:border-gray-700"
         onTouchStart={(e) => setTouchStartX(e.changedTouches[0]?.clientX ?? null)}
         onTouchEnd={(e) => {
           const endX = e.changedTouches[0]?.clientX
@@ -79,7 +80,7 @@ export default function WebStoryViewer({ story, articleUrl }) {
         {current?.image ? (
           <Image
             src={current.image}
-            alt={current.image_alt || current.headline || story.title}
+            alt={current.image_alt || story.title}
             fill
             className="object-cover"
             sizes="(max-width: 1024px) 100vw, 420px"
@@ -92,43 +93,57 @@ export default function WebStoryViewer({ story, articleUrl }) {
         <button className="absolute inset-y-0 left-0 w-1/2" onClick={prev} aria-label="Previous slide" />
         <button className="absolute inset-y-0 right-0 w-1/2" onClick={next} aria-label="Next slide" />
 
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white">
-          {!isCtaSlide && !isWhatsappSlide && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-4 text-white">
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-gray-200">
+            <span>{isCoverSlide ? authorName : `Slide ${index + 1}`}</span>
+            <span>Slide {index + 1} of {slides.length}</span>
+          </div>
+
+          {isCoverSlide && !isReadMoreSlide && !isWhatsappSlide && (
             <>
-              <h2 className="text-lg font-bold">{current?.headline || story.title}</h2>
-              {index === 0 && (
-                <p className="mt-1 text-sm text-gray-200">{authorName}</p>
-              )}
+              <h2 className="text-lg font-bold leading-snug">{story.title}</h2>
+              <p className="mt-1 text-sm text-gray-200">{authorName}</p>
             </>
           )}
 
-          {(isCtaSlide || current?.cta_url) && (
-            <div className="text-center mt-2">
+          {!isReadMoreSlide && !isWhatsappSlide && current?.description && (
+            <p className="mt-2 text-sm leading-6 text-gray-100">{current.description}</p>
+          )}
+
+          {isReadMoreSlide && (
+            <div className="mt-3 space-y-3 text-center">
+              {current?.description && (
+                <p className="text-sm leading-6 text-gray-100">{current.description}</p>
+              )}
               <a
                 href={ctaHref}
                 {...ctaLinkProps}
-                className="inline-flex text-base font-bold text-blue-300 hover:text-blue-200 underline underline-offset-4"
+                className="inline-flex rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-400"
               >
-                {current.cta_text || 'Read More Stories'}
+                {current.cta_text || 'Read More'}
               </a>
             </div>
           )}
 
-          {(isWhatsappSlide || current?.whatsapp_group_url) && (
-            <p className="text-sm leading-relaxed text-center mt-2">
-              Get breaking updates directly on WhatsApp.{' '}
+          {isWhatsappSlide && (
+            <div className="mt-3 space-y-3 text-center">
+              {current?.description && (
+                <p className="text-sm leading-6 text-gray-100">{current.description}</p>
+              )}
               {current.whatsapp_group_url ? (
                 <a
                   href={current.whatsapp_group_url}
                   {...whatsappLinkProps}
-                  className="font-semibold text-green-300 hover:text-green-200 underline underline-offset-4"
+                  className="inline-flex rounded-full bg-green-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-400"
                 >
-                  Join our WhatsApp Group
+                  Join Our WhatsApp Community
                 </a>
               ) : (
-                <span className="font-semibold">Join our WhatsApp Group</span>
+                <span className="inline-flex rounded-full bg-green-500 px-4 py-2 text-sm font-semibold text-white">
+                  Join Our WhatsApp Community
+                </span>
               )}
-            </p>
+            </div>
           )}
 
           <div className="mt-4 flex items-center justify-between gap-2">
@@ -137,20 +152,18 @@ export default function WebStoryViewer({ story, articleUrl }) {
               <span>{metrics.likes || 0} likes</span>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="secondary" onClick={handleLike}><Heart className="h-4 w-4 mr-1" />Like</Button>
+              <Button size="sm" variant="secondary" onClick={handleLike}><Heart className="mr-1 h-4 w-4" />Like</Button>
             </div>
           </div>
         </div>
 
-        <button onClick={prev} className="absolute top-1/2 -translate-y-1/2 left-2 rounded-full bg-black/40 p-1 text-white" aria-label="Previous">
+        <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white" aria-label="Previous">
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <button onClick={next} className="absolute top-1/2 -translate-y-1/2 right-2 rounded-full bg-black/40 p-1 text-white" aria-label="Next">
+        <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1 text-white" aria-label="Next">
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
     </div>
   )
 }
-
-

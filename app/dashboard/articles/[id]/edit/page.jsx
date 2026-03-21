@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import KeywordInput from '@/components/dashboard/KeywordInput'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -61,6 +62,7 @@ export default function EditArticlePage() {
     const [featuredImageAlt, setFeaturedImageAlt] = useState('')
     const [seoTitle, setSeoTitle] = useState('')
     const [seoDescription, setSeoDescription] = useState('')
+    const [keywords, setKeywords] = useState([])
     const [status, setStatus] = useState('published')
 
     // Options
@@ -134,6 +136,7 @@ export default function EditArticlePage() {
             setFeaturedImageAlt(articleData.featured_image_alt || '')
             setSeoTitle(articleData.seo_title || '')
             setSeoDescription(articleData.seo_description || '')
+            setKeywords(articleData.keywords || [])
             setStatus(articleData.status || 'published')
 
             if (articleData.article_tags) {
@@ -313,6 +316,7 @@ export default function EditArticlePage() {
                 featured_image_alt: featuredImageAlt?.trim() || null,
                 seo_title: seoTitle || title,
                 seo_description: seoDescription || excerpt,
+                keywords,
                 status: finalStatus,
                 published_at: finalStatus === 'published'
                     ? (existingPublishedAt || new Date().toISOString())
@@ -671,6 +675,10 @@ export default function EditArticlePage() {
                                 {seoDescription.length}/160 characters
                             </p>
                         </div>
+                        <KeywordInput
+                            value={keywords}
+                            onChange={setKeywords}
+                        />
                     </CardContent>
                 </Card>
 

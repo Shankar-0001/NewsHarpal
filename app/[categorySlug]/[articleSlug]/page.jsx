@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Clock } from 'lucide-react'
+import { Calendar, Clock, TrendingUp } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import Image from 'next/image'
 import PublicHeader from '@/components/layout/PublicHeader'
 import StructuredData from '@/components/seo/StructuredData'
-import { InArticleAd, MobileStickyAd } from '@/components/ads/AdComponent'
+import { InArticleAd } from '@/components/ads/AdComponent'
 import { generateArticleSchemas } from '@/lib/seo-utils'
 import { calculateReadingTime, generateSixtySecondSummary, generateAeoSnapshot } from '@/lib/content-utils'
 import ReadingProgressBar from '@/components/article/ReadingProgressBar'
@@ -19,14 +19,10 @@ import ArticleMiniCard from '@/components/content/ArticleMiniCard'
 import { applyLinkPolicyToHtml } from '@/lib/link-policy'
 import { buildLanguageAlternates, slugFromText } from '@/lib/site-config'
 import { buildArticleKeywords, keywordsToMetadataValue, keywordsToTopicLinks } from '@/lib/keywords'
-import { injectInternalLinks } from '@/lib/internal-linking'
 
-// ISR Configuration - Revalidate every 30 minutes
 export const revalidate = 1800
 
-// Generate static params for published articles
 export async function generateStaticParams() {
-  // Use direct Supabase client without cookies for static generation
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -45,7 +41,6 @@ export async function generateStaticParams() {
   })) || []
 }
 
-// Generate metadata for SEO
 export async function generateMetadata({ params }) {
   try {
     const supabase = await createClient()
@@ -62,6 +57,7 @@ export async function generateMetadata({ params }) {
         seo_description,
         featured_image_url,
         featured_image_alt,
+        keywords,
         published_at,
         updated_at,
         status,
@@ -140,413 +136,449 @@ export default async function ArticlePage({ params }) {
     const { categorySlug, articleSlug } = params
     const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
 
-  // Fetch article
-  const { data: article } = await supabase
-    .from('articles')
-    .select(`
-      id,
-      title,
-      slug,
-      excerpt,
-      content,
-      content_json,
-      featured_image_url,
-      featured_image_alt,
-      published_at,
-      updated_at,
-      status,
-      category_id,
-      author_id,
-      authors (id, slug, name, bio, avatar_url),
-      categories (name, slug),
-      article_tags (tags (id, name, slug))
-    `)
-    .eq('slug', articleSlug)
-    .eq('status', 'published')
-    .single()
-
-  if (!article) {
-    notFound()
-  }
-
-  if (article.categories?.slug && article.categories.slug !== categorySlug) {
-    notFound()
-  }
-
-  let authorProfile = article.authors || null
-  if (
-    (
-      !authorProfile?.bio
-      || !authorProfile?.name
-      || !authorProfile?.slug
-      || !authorProfile?.title
-      || !authorProfile?.email
-    )
-    && article.author_id
-  ) {
-    const { data: profileRow } = await supabase
-      .from('authors')
-      .select('id, slug, name, bio, avatar_url, title, email')
-      .eq('id', article.author_id)
-      .maybeSingle()
-    authorProfile = profileRow || authorProfile
-  }
-  const authorBio = authorProfile?.bio || ''
-
-  // Related: same tags
-  const tagIds = (article.article_tags || [])
-    .map((at) => at.tags?.id)
-    .filter(Boolean)
-
-  const [
-    { data: relatedByCategory },
-    { data: latestArticles },
-    { data: engagementRows },
-    { data: trendingCandidates },
-    { data: categories },
-    { data: linkRows },
-  ] = await Promise.all([
-    supabase
+    const { data: article } = await supabase
       .from('articles')
-      .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
-      .eq('category_id', article.category_id)
+      .select(`
+        id,
+        title,
+        slug,
+        excerpt,
+        content,
+        content_json,
+        featured_image_url,
+        featured_image_alt,
+        keywords,
+        published_at,
+        updated_at,
+        status,
+        category_id,
+        author_id,
+        authors (id, slug, name, bio, avatar_url),
+        categories (name, slug),
+        article_tags (tags (id, name, slug))
+      `)
+      .eq('slug', articleSlug)
       .eq('status', 'published')
-      .neq('id', article.id)
-      .order('published_at', { ascending: false })
-      .limit(4),
-    supabase
-      .from('articles')
-      .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
-      .eq('status', 'published')
-      .neq('id', article.id)
-      .order('published_at', { ascending: false })
-      .limit(10),
-    supabase
-      .from('article_engagement')
-      .select('article_id, views, likes, shares')
-      .limit(10),
-    supabase
-      .from('articles')
-      .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
-      .eq('status', 'published')
-      .neq('id', article.id)
-      .order('published_at', { ascending: false })
-      .limit(10),
-    supabase
-      .from('categories')
-      .select('id, name, slug')
-      .order('name'),
-    tagIds.length > 0
-      ? supabase
-        .from('article_tags')
-        .select('article_id')
-        .neq('article_id', article.id)
-        .in('tag_id', tagIds)
-        .limit(10)
-      : Promise.resolve({ data: [] }),
-  ])
+      .single()
 
-  let relatedByTag = []
-  if (tagIds.length > 0 && (linkRows || []).length > 0) {
-    const ids = [...new Set((linkRows || []).map((r) => r.article_id).filter(Boolean))]
-    if (ids.length > 0) {
-      const { data: taggedArticles } = await supabase
+    if (!article) {
+      notFound()
+    }
+
+    if (article.categories?.slug && article.categories.slug !== categorySlug) {
+      notFound()
+    }
+
+    let authorProfile = article.authors || null
+    if (
+      (
+        !authorProfile?.bio
+        || !authorProfile?.name
+        || !authorProfile?.slug
+        || !authorProfile?.title
+        || !authorProfile?.email
+      )
+      && article.author_id
+    ) {
+      const { data: profileRow } = await supabase
+        .from('authors')
+        .select('id, slug, name, bio, avatar_url, title, email')
+        .eq('id', article.author_id)
+        .maybeSingle()
+      authorProfile = profileRow || authorProfile
+    }
+
+    const tagIds = (article.article_tags || [])
+      .map((at) => at.tags?.id)
+      .filter(Boolean)
+
+    const [
+      { data: relatedByCategory },
+      { data: latestArticles },
+      { data: engagementRows },
+      { data: categories },
+      { data: linkRows },
+    ] = await Promise.all([
+      supabase
         .from('articles')
         .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
-        .in('id', ids)
+        .eq('category_id', article.category_id)
         .eq('status', 'published')
+        .neq('id', article.id)
         .order('published_at', { ascending: false })
-        .limit(4)
-      relatedByTag = taggedArticles || []
-    }
-  }
-
-  const relatedMap = new Map()
-  ;[...(relatedByCategory || []), ...relatedByTag, ...(latestArticles || [])].forEach((item) => {
-    if (!item?.id || item.id === article.id || relatedMap.has(item.id)) return
-    relatedMap.set(item.id, item)
-  })
-  const relatedArticles = Array.from(relatedMap.values()).slice(0, 4)
-
-  const scoreMap = new Map(
-    (engagementRows || []).map((row) => [
-      row.article_id,
-      (row.views || 0) + (row.likes || 0) * 3 + (row.shares || 0) * 5,
+        .limit(12),
+      supabase
+        .from('articles')
+        .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
+        .eq('status', 'published')
+        .neq('id', article.id)
+        .order('published_at', { ascending: false })
+        .limit(12),
+      supabase
+        .from('article_engagement')
+        .select('article_id, views, likes, shares')
+        .order('views', { ascending: false })
+        .order('shares', { ascending: false })
+        .limit(60),
+      supabase
+        .from('categories')
+        .select('id, name, slug')
+        .order('name'),
+      tagIds.length > 0
+        ? supabase
+          .from('article_tags')
+          .select('article_id')
+          .neq('article_id', article.id)
+          .in('tag_id', tagIds)
+          .limit(30)
+        : Promise.resolve({ data: [] }),
     ])
-  )
 
-  const trendingArticles = (trendingCandidates || [])
-    .map((item) => ({ ...item, _score: scoreMap.get(item.id) || 0 }))
-    .sort((a, b) => b._score - a._score)
-    .slice(0, 5)
+    let relatedByTag = []
+    const tagMatchCount = new Map()
+    if (tagIds.length > 0 && (linkRows || []).length > 0) {
+      for (const row of linkRows || []) {
+        if (!row?.article_id) continue
+        tagMatchCount.set(row.article_id, (tagMatchCount.get(row.article_id) || 0) + 1)
+      }
 
-  const articleUrl = `${siteUrl}/${article.categories?.slug || 'news'}/${article.slug}`
-  const authorLinkSlug = authorProfile?.id
-    || article.author_id
-    || authorProfile?.slug
-    || slugFromText(authorProfile?.name || article.authors?.name || '')
-    || article.authors?.id
-  const breadcrumbItems = [
-    { label: article.categories?.name || 'News', href: `/category/${article.categories?.slug || 'news'}` },
-    { label: article.title, href: `/${article.categories?.slug || 'news'}/${article.slug}` },
-  ]
+      const ids = [...new Set((linkRows || []).map((r) => r.article_id).filter(Boolean))]
+      if (ids.length > 0) {
+        const { data: taggedArticles } = await supabase
+          .from('articles')
+          .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
+          .in('id', ids)
+          .eq('status', 'published')
+          .order('published_at', { ascending: false })
+          .limit(12)
+        relatedByTag = taggedArticles || []
+      }
+    }
 
-  const readingTimeMinutes = calculateReadingTime(article.content || '')
-  const summaryPoints = generateSixtySecondSummary(article)
-  const aeoSnapshot = generateAeoSnapshot(article)
-  const articleKeywords = buildArticleKeywords(article)
-  const keywordTopicLinks = keywordsToTopicLinks(articleKeywords)
-  const safeArticleContent = applyLinkPolicyToHtml(article.content || '', {
-    baseUrl: siteUrl,
-    nofollowExternal: true,
-  })
-  const internalLinkCandidates = [
-    { keyword: article.categories?.name || '', href: `/category/${article.categories?.slug || 'news'}` },
-    ...(article.article_tags || []).map((tag) => ({
-      keyword: tag.tags?.name || '',
-      href: `/tags/${tag.tags?.slug}`,
-    })),
-    ...keywordTopicLinks.map((item) => ({ keyword: item.keyword, href: `/topic/${item.slug}` })),
-    ...relatedArticles.map((item) => ({
-      keyword: item.title || '',
-      href: `/${item.categories?.slug || 'news'}/${item.slug}`,
-    })),
-  ].filter((item) => item.keyword && item.href && item.href !== `/${article.categories?.slug || 'news'}/${article.slug}`)
-  const enhancedArticleContent = injectInternalLinks(safeArticleContent, internalLinkCandidates, 5)
-  const faqItems = [
-    {
-      question: `What is this article about?`,
-      answer: article.excerpt || `This article covers ${article.title}.`,
-    },
-    {
-      question: 'How long does this article take to read?',
-      answer: `About ${readingTimeMinutes} minute${readingTimeMinutes > 1 ? 's' : ''}.`,
-    },
-  ]
-  const schemas = generateArticleSchemas({
-    article,
-    articleUrl,
-    readingTimeMinutes,
-    faqItems,
-    breadcrumbs: [
-      { name: 'Home', url: siteUrl },
-      { name: article.categories?.name || 'News', url: `${siteUrl}/category/${article.categories?.slug || 'news'}` },
-      { name: article.title, url: articleUrl },
-    ],
-  })
+    const scoreMap = new Map(
+      (engagementRows || []).map((row) => [
+        row.article_id,
+        (row.views || 0) + (row.likes || 0) * 3 + (row.shares || 0) * 5,
+      ])
+    )
+
+    const relatedCandidates = new Map()
+    for (const item of [...(relatedByCategory || []), ...relatedByTag, ...(latestArticles || [])]) {
+      if (!item?.id || item.id === article.id) continue
+      if (relatedCandidates.has(item.id)) continue
+
+      const engagementScore = scoreMap.get(item.id) || 0
+      const matchedTags = tagMatchCount.get(item.id) || 0
+      const sameCategory = item.categories?.slug === article.categories?.slug
+      const publishedAt = item.published_at ? new Date(item.published_at).getTime() : 0
+      const ageInDays = publishedAt ? Math.max(0, (Date.now() - publishedAt) / (1000 * 60 * 60 * 24)) : 365
+      const recencyBoost = Math.max(0, 18 - Math.min(ageInDays, 18))
+      const relevanceScore = (sameCategory ? 45 : 0)
+        + matchedTags * 70
+        + Math.log10(engagementScore + 1) * 12
+        + recencyBoost
+
+      relatedCandidates.set(item.id, { ...item, _score: relevanceScore })
+    }
+
+    const relatedArticles = Array.from(relatedCandidates.values())
+      .sort((a, b) => {
+        if (b._score !== a._score) return b._score - a._score
+        return new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
+      })
+      .slice(0, 4)
+
+    const trendingIds = [...new Set((engagementRows || []).map((row) => row.article_id).filter(Boolean))]
+    let trendingArticles = []
+    if (trendingIds.length > 0) {
+      const { data: trendingPool } = await supabase
+        .from('articles')
+        .select('id, title, slug, excerpt, featured_image_url, published_at, categories(slug), authors(name)')
+        .in('id', trendingIds)
+        .eq('status', 'published')
+        .neq('id', article.id)
+        .limit(20)
+
+      const sortedTrending = (trendingPool || [])
+        .map((item) => ({ ...item, _score: scoreMap.get(item.id) || 0 }))
+        .sort((a, b) => {
+          if (b._score !== a._score) return b._score - a._score
+          return new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
+        })
+
+      trendingArticles = sortedTrending.slice(0, 5)
+    }
+
+    if (trendingArticles.length < 5) {
+      const existingIds = new Set(trendingArticles.map((item) => item.id))
+      for (const item of latestArticles || []) {
+        if (!item?.id || item.id === article.id || existingIds.has(item.id)) continue
+        trendingArticles.push(item)
+        existingIds.add(item.id)
+        if (trendingArticles.length >= 5) break
+      }
+    }
+
+    const articleUrl = `${siteUrl}/${article.categories?.slug || 'news'}/${article.slug}`
+    const authorLinkSlug = authorProfile?.id
+      || article.author_id
+      || authorProfile?.slug
+      || slugFromText(authorProfile?.name || article.authors?.name || '')
+      || article.authors?.id
+
+    const readingTimeMinutes = calculateReadingTime(article.content || '')
+    const summaryPoints = generateSixtySecondSummary(article)
+    const aeoSnapshot = generateAeoSnapshot(article)
+    const articleKeywords = buildArticleKeywords(article)
+    const keywordTopicLinks = keywordsToTopicLinks(articleKeywords)
+    const articleContent = applyLinkPolicyToHtml(article.content || '', {
+      baseUrl: siteUrl,
+      nofollowExternal: true,
+    })
+    const faqItems = [
+      {
+        question: 'What is this article about?',
+        answer: article.excerpt || `This article covers ${article.title}.`,
+      },
+      {
+        question: 'How long does this article take to read?',
+        answer: `About ${readingTimeMinutes} minute${readingTimeMinutes > 1 ? 's' : ''}.`,
+      },
+    ]
+    const schemas = generateArticleSchemas({
+      article,
+      articleUrl,
+      readingTimeMinutes,
+      faqItems,
+      breadcrumbs: [
+        { name: 'Home', url: siteUrl },
+        { name: article.categories?.name || 'News', url: `${siteUrl}/category/${article.categories?.slug || 'news'}` },
+        { name: article.title, url: articleUrl },
+      ],
+    })
 
     return (
-    <>
-      <StructuredData data={schemas.newsArticle} />
-      <StructuredData data={schemas.blogPosting} />
-      <StructuredData data={schemas.breadcrumbList} />
-      <StructuredData data={schemas.faqPage} />
+      <>
+        <StructuredData data={schemas.newsArticle} />
+        <StructuredData data={schemas.blogPosting} />
+        <StructuredData data={schemas.breadcrumbList} />
+        <StructuredData data={schemas.faqPage} />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <PublicHeader categories={categories || []} />
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <PublicHeader categories={categories || []} />
 
-        {/* Article Content */}
-        <article className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 pb-16 md:pb-8">
-          <ReadingProgressBar />
-          <StickyShareBar articleUrl={articleUrl} articleTitle={article.title} />
-          {/* Breadcrumb UI intentionally omitted; schema is emitted via JSON-LD */}
+          <article className="w-full max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 pb-16 md:pb-10">
+            <ReadingProgressBar />
+            <StickyShareBar articleUrl={articleUrl} articleTitle={article.title} />
 
-          <Card className="p-4 md:p-6 lg:p-8 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
-            <div className="mx-auto max-w-[720px]">
-              {/* Category Badge */}
-              {article.categories && (
-                <Link href={`/category/${article.categories.slug}`}>
-                  <Badge variant="secondary" className="mb-4 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600">
-                    {article.categories.name}
-                  </Badge>
-                </Link>
-              )}
-
-              {/* Title - H1 for SEO */}
-              <h1 className="text-[30px] leading-tight font-extrabold text-gray-900 dark:text-white mb-5 md:text-[44px] tracking-tight">
-                {article.title}
-              </h1>
-
-              {/* Excerpt */}
-              {article.excerpt && (
-                <p className="text-[19px] text-gray-700 dark:text-gray-300 mb-6 leading-[1.8]">
-                  {article.excerpt}
-                </p>
-              )}
-
-              {/* Meta Info */}
-              <div className="flex flex-wrap items-center gap-4 mb-8 pb-6 border-b dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={authorProfile?.avatar_url || ''} />
-                    <AvatarFallback>
-                      {(authorProfile?.name || article.authors?.name || '').split(' ').map((n) => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">By</span>
-                    <Link href={`/authors/${authorLinkSlug}`}>
-                      <strong className="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer">{authorProfile?.name || article.authors?.name}</strong>
-                    </Link>
+            <div className="mb-8 rounded-[32px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_34%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] p-5 md:p-8 shadow-sm dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)]">
+              <div className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_360px] xl:items-start">
+                <div className="max-w-[860px]">
+                  <div className="flex flex-wrap items-center gap-3 mb-5">
+                    {article.categories && (
+                      <Link href={`/category/${article.categories.slug}`}>
+                        <Badge className="bg-blue-600 hover:bg-blue-700 text-white border-0 px-3 py-1">{article.categories.name}</Badge>
+                      </Link>
+                    )}
+                    <Badge variant="secondary" className="px-3 py-1">{readingTimeMinutes} min read</Badge>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <time dateTime={article.published_at}>
-                    Published {format(new Date(article.published_at), 'MMMM d, yyyy')} ({formatDistanceToNow(new Date(article.published_at), { addSuffix: true })})
-                  </time>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{readingTimeMinutes} min read</span>
-                </div>
-                {article.updated_at !== article.published_at && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <time dateTime={article.updated_at}>
-                      Updated {format(new Date(article.updated_at), 'MMMM d, yyyy')} ({formatDistanceToNow(new Date(article.updated_at), { addSuffix: true })})
-                    </time>
+
+                  <h1 className="text-[32px] leading-[1.05] font-extrabold text-gray-900 dark:text-white mb-5 md:text-[56px] tracking-tight max-w-4xl">
+                    {article.title}
+                  </h1>
+
+                  {article.excerpt && (
+                    <p className="text-[19px] text-gray-700 dark:text-gray-300 mb-6 leading-[1.8] max-w-3xl">
+                      {article.excerpt}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-4 md:gap-6 rounded-[24px] border border-slate-200 bg-white/85 px-4 py-4 text-sm text-gray-600 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 dark:text-gray-400">
+                    <div className="flex items-center gap-3 min-w-[220px]">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={authorProfile?.avatar_url || ''} />
+                        <AvatarFallback>
+                          {(authorProfile?.name || article.authors?.name || '').split(' ').map((n) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">By</span>
+                        <Link href={`/authors/${authorLinkSlug}`}>
+                          <strong className="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer">{authorProfile?.name || article.authors?.name}</strong>
+                        </Link>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <time dateTime={article.published_at}>
+                        Published {format(new Date(article.published_at), 'MMMM d, yyyy')}
+                      </time>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>{formatDistanceToNow(new Date(article.published_at), { addSuffix: true })}</span>
+                    </div>
+                    {article.updated_at !== article.published_at && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <time dateTime={article.updated_at}>
+                          Updated {format(new Date(article.updated_at), 'MMMM d, yyyy')}
+                        </time>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                </div>
+
+                <div className="space-y-4">
+                  {article.featured_image_url && (
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-[26px] border border-slate-200 shadow-sm dark:border-slate-800">
+                      <Image
+                        src={article.featured_image_url}
+                        alt={article.featured_image_alt || article.title}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 1280px) 100vw, 360px"
+                      />
+                    </div>
+                  )}
+
+                </div>
               </div>
-
-              <ArticleSummaryToggles
-                summaryPoints={summaryPoints}
-                aeoSnapshot={aeoSnapshot}
-                articleId={article.id}
-                articleUrl={articleUrl}
-                articleTitle={article.title}
-              />
             </div>
 
-            {/* Featured Image - Optimized for Google Discover */}
-            {article.featured_image_url && (
-              <div className="mb-8 mx-auto max-w-[720px] rounded-xl overflow-hidden relative w-full aspect-video md:aspect-[21/9]">
-                <Image
-                  src={article.featured_image_url}
-                  alt={article.featured_image_alt || article.title}
-                  fill
-                  className="object-cover"
-                  loading="lazy"
-                  sizes="(max-width: 768px) 100vw, 720px"
-                />
-              </div>
-            )}
+            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
+              <div>
+                <Card className="rounded-[28px] p-3 sm:p-4 md:p-6 lg:p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mx-auto max-w-[720px]">
+                    <ArticleSummaryToggles
+                      summaryPoints={summaryPoints}
+                      aeoSnapshot={aeoSnapshot}
+                      articleId={article.id}
+                      articleUrl={articleUrl}
+                      articleTitle={article.title}
+                    />
 
-            <div className="mx-auto max-w-[720px] space-y-6">
-              {/* Article Content */}
-              <div
-                className="article-content prose prose-lg dark:prose-invert mb-8"
-                dangerouslySetInnerHTML={{ __html: enhancedArticleContent }}
-              />
-            </div>
+                    {article.featured_image_url && (
+                      <div className="mb-8 mt-8 rounded-[24px] overflow-hidden relative w-full aspect-video md:aspect-[21/9]">
+                        <Image
+                          src={article.featured_image_url}
+                          alt={article.featured_image_alt || article.title}
+                          fill
+                          className="object-cover"
+                          loading="lazy"
+                          sizes="(max-width: 768px) 100vw, 760px"
+                        />
+                      </div>
+                    )}
 
-            {/* In-Article Ad */}
-            <InArticleAd />
+                    <div className="space-y-6">
+                      <div
+                        className="article-content prose prose-slate dark:prose-invert mb-8 max-w-none"
+                        dangerouslySetInnerHTML={{ __html: articleContent }}
+                      />
+                    </div>
 
-            {/* Tags */}
-            {article.article_tags && article.article_tags.length > 0 && (
-              <div className="mt-12 pt-8 border-t dark:border-gray-700 mx-auto max-w-[720px]">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase">Tagged</h3>
-                <div className="flex flex-wrap gap-2">
-                  {article.article_tags.map((at) => (
-                    <Link key={at.tags.slug} href={`/tags/${at.tags.slug}`}>
-                      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                        {at.tags.name}
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+                    <InArticleAd />
 
-            {keywordTopicLinks.length > 0 && (
-              <div className="mt-8 mx-auto max-w-[720px]">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase">Related Keywords</h3>
-                <div className="flex flex-wrap gap-2">
-                  {keywordTopicLinks.map((item) => (
-                    <Link key={item.slug} href={`/topic/${item.slug}`}>
-                      <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                        {item.keyword}
-                      </Badge>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </Card>
-
-          {/* You May Also Like */}
-          {relatedArticles && relatedArticles.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6 dark:text-white">You May Also Like</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {relatedArticles.map((related) => (
-                  <Link
-                    key={related.id}
-                    href={`/${related.categories?.slug || 'news'}/${related.slug}`}
-                  >
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full dark:bg-gray-800 dark:border-gray-700">
-                      {related.featured_image_url && (
-                        <div className="relative w-full aspect-video">
-                          <Image
-                            src={related.featured_image_url}
-                            alt={related.title}
-                            fill
-                            className="object-cover rounded-t-lg"
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                          />
-                        </div>
-                      )}
-                      <div className="p-4">
-                        <h3 className="font-bold mb-2 line-clamp-2 dark:text-white">{related.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                          {related.excerpt}
-                        </p>
-                        <div className="flex items-center gap-2 mt-3 text-xs text-gray-500 dark:text-gray-500">
-                          <span>{related.authors?.name}</span>
-                          <span>-</span>
-                          <time>{format(new Date(related.published_at), 'MMM d, yyyy')}</time>
+                    {article.article_tags && article.article_tags.length > 0 && (
+                      <div className="mt-12 pt-8 border-t dark:border-gray-700">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase">Tagged</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {article.article_tags.map((at) => (
+                            <Link key={at.tags.slug} href={`/tags/${at.tags.slug}`}>
+                              <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                {at.tags.name}
+                              </Badge>
+                            </Link>
+                          ))}
                         </div>
                       </div>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+                    )}
 
-          {/* Trending Now */}
-          {trendingArticles && trendingArticles.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6 dark:text-white">Trending Now</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {trendingArticles.map((trending) => (
-                  <ArticleMiniCard key={trending.id} article={trending} compact />
-                ))}
+                    {keywordTopicLinks.length > 0 && (
+                      <div className="mt-8">
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase">Related Keywords</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {keywordTopicLinks.map((item) => (
+                            <Link key={item.slug} href={`/topic/${item.slug}`}>
+                              <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                {item.keyword}
+                              </Badge>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
               </div>
-            </div>
-          )}
 
-          {/* Latest News */}
-          {latestArticles && latestArticles.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6 dark:text-white">Latest News</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {latestArticles.slice(0, 6).map((item) => (
-                  <ArticleMiniCard key={item.id} article={item} compact />
-                ))}
+              <aside className="space-y-6 xl:sticky xl:top-28">
+                <Card className="rounded-[24px] dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+                  <div className="p-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Explore Sections</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {(categories || []).slice(0, 10).map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/category/${item.slug}`}
+                          className={`rounded-full border px-3 py-2 text-sm transition-colors ${item.slug === article.categories?.slug ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+
+                {relatedArticles && relatedArticles.length > 0 && (
+                  <Card className="rounded-[24px] dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+                    <div className="p-6">
+                      <h2 className="text-xl font-bold mb-4 dark:text-white">You May Also Like</h2>
+                      <div className="grid grid-cols-1 gap-4">
+                        {relatedArticles.map((related) => (
+                          <ArticleMiniCard key={related.id} article={related} compact />
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {trendingArticles && trendingArticles.length > 0 && (
+                  <Card className="rounded-[24px] dark:bg-gray-800 dark:border-gray-700 shadow-sm">
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="h-4 w-4 text-orange-500" />
+                        <h2 className="text-xl font-bold dark:text-white">Trending Now</h2>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {trendingArticles.map((trending) => (
+                          <ArticleMiniCard key={trending.id} article={trending} compact />
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </aside>
+            </div>
+
+            {latestArticles && latestArticles.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-bold mb-6 dark:text-white">Latest News</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {latestArticles.slice(0, 6).map((item) => (
+                    <ArticleMiniCard key={item.id} article={item} compact />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-        </article>
-      </div>
-    </>
-  )
+            )}
+          </article>
+        </div>
+      </>
+    )
   } catch {
     notFound()
   }
 }
-

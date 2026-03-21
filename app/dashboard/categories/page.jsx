@@ -22,9 +22,13 @@ export default function CategoriesPage() {
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [showDialog, setShowDialog] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
 
   useEffect(() => {
     loadCategories()
@@ -47,6 +51,11 @@ export default function CategoriesPage() {
     }
   }
 
+  const resetCreateForm = () => {
+    setName('')
+    setDescription('')
+  }
+
   const handleCreate = async () => {
     if (!name) return
 
@@ -65,9 +74,41 @@ export default function CategoriesPage() {
       return
     }
 
-    setShowDialog(false)
-    setName('')
-    setDescription('')
+    setShowCreateDialog(false)
+    resetCreateForm()
+    loadCategories()
+  }
+
+  const openEditDialog = (category) => {
+    setEditingCategoryId(category.id)
+    setEditName(category.name || '')
+    setEditDescription(category.description || '')
+    setShowEditDialog(true)
+  }
+
+  const handleEdit = async () => {
+    if (!editingCategoryId || !editName) return
+
+    const response = await fetch('/api/categories', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editingCategoryId,
+        name: editName,
+        slug: slugify(editName, { lower: true, strict: true }),
+        description: editDescription,
+      }),
+    })
+    const result = await response.json()
+    if (!response.ok) {
+      alert(result?.error || 'Failed to update category')
+      return
+    }
+
+    setShowEditDialog(false)
+    setEditingCategoryId('')
+    setEditName('')
+    setEditDescription('')
     loadCategories()
   }
 
@@ -89,12 +130,12 @@ export default function CategoriesPage() {
 
   return (
     <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
-          <p className="text-gray-600 mt-2">Organize your content</p>
+          <p className="mt-2 text-gray-600">Organize your content</p>
         </div>
-        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -131,23 +172,63 @@ export default function CategoriesPage() {
         </Dialog>
       </div>
 
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Category name"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {loading ? (
         <p className="text-gray-500">Loading categories...</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <Card key={category.id}>
               <CardHeader>
-                <CardTitle className="flex justify-between items-start">
+                <CardTitle className="flex items-start justify-between gap-3">
                   <span>{category.name}</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
-                    onClick={() => handleDelete(category.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-blue-600 hover:text-blue-700"
+                      onClick={() => openEditDialog(category)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDelete(category.id)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               {category.description && (

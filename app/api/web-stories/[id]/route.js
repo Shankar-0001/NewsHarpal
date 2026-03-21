@@ -3,13 +3,15 @@ import { apiResponse } from '@/lib/api-utils'
 import { requireAuth, getUserAuthorId } from '@/lib/auth-utils'
 import { slugFromText } from '@/lib/site-config'
 import { validateWebStoryPayload } from '@/lib/web-story-validation'
+import { normalizeManualKeywords } from '@/lib/keywords'
 
-function normalizeSlides(slides) {
+function normalizeSlides(slides, storyTitle = '') {
   if (!Array.isArray(slides)) return []
   return slides
     .map((slide) => ({
       image: slide?.image || '',
-      headline: slide?.headline || '',
+      image_alt: slide?.image_alt || '',
+      headline: slide?.headline || storyTitle || '',
       description: slide?.description || '',
       relatedArticleUrl: slide?.relatedArticleUrl || '',
       cta_text: slide?.cta_text || '',
@@ -17,10 +19,10 @@ function normalizeSlides(slides) {
       whatsapp_group_url: slide?.whatsapp_group_url || '',
       seo_description: slide?.seo_description || '',
     }))
-    .filter((slide) => slide.image && slide.headline)
+    .filter((slide) => slide.image && (slide.headline || storyTitle))
 }
 
-const STORY_SELECT = 'id, title, slug, cover_image, slides, author_id, category_id, tags, related_article_slug, cta_text, cta_url, whatsapp_group_url, ad_slot, seo_description, created_at, updated_at, authors(name, slug), categories(name, slug)'
+const STORY_SELECT = 'id, title, slug, cover_image, slides, author_id, category_id, tags, keywords, related_article_slug, cta_text, cta_url, whatsapp_group_url, ad_slot, seo_description, created_at, updated_at, authors(name, slug), categories(name, slug)'
 
 async function canMutateStory(supabase, storyId, user) {
   if (user.role === 'admin') return true
@@ -78,6 +80,9 @@ export async function PATCH(request, { params }) {
     if (Array.isArray(payload.tags)) {
       updates.tags = payload.tags
     }
+    if ('keywords' in payload) {
+      updates.keywords = normalizeManualKeywords(payload.keywords || [])
+    }
     if ('related_article_slug' in payload) {
       updates.related_article_slug = payload.related_article_slug || null
     }
@@ -113,29 +118,32 @@ export async function PATCH(request, { params }) {
         updates.author_id = payload.author_id
       }
     }
+
+    const { data: existingStory } = await supabase
+      .from('web_stories')
+      .select('title, cover_image, slides, seo_description')
+      .eq('id', params.id)
+      .maybeSingle()
+
+    const effectiveTitle = updates.title || existingStory?.title || ''
+
     if (payload.slides) {
-      const slides = normalizeSlides(payload.slides)
+      const slides = normalizeSlides(payload.slides, effectiveTitle)
       if (slides.length === 0) return apiResponse(422, null, 'At least one valid slide is required')
       updates.slides = slides
       if (!updates.cover_image) {
         updates.cover_image = slides[0].image
       }
       if (!updates.title) {
-        updates.title = slides[0].headline
+        updates.title = effectiveTitle || slides[0].headline
       }
       if (!updates.slug) {
         updates.slug = slugFromText(updates.title)
       }
       if (!updates.seo_description) {
-        updates.seo_description = slides.find((s) => s.seo_description)?.seo_description || null
+        updates.seo_description = payload.seo_description || slides.find((s) => s.seo_description)?.seo_description || existingStory?.seo_description || null
       }
     }
-
-    const { data: existingStory } = await supabase
-      .from('web_stories')
-      .select('title, cover_image, slides')
-      .eq('id', params.id)
-      .maybeSingle()
 
     const validation = validateWebStoryPayload({
       title: updates.title || existingStory?.title || '',

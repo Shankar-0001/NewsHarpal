@@ -5,6 +5,8 @@ import StructuredData from '@/components/seo/StructuredData'
 import { absoluteUrl } from '@/lib/site-config'
 import { notFound } from 'next/navigation'
 import { generateCategoryMetadata } from '@/lib/seo-utils'
+import { ArrowRight, Sparkles, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
 export const revalidate = 900
 const PAGE_SIZE = 12
@@ -71,16 +73,74 @@ export default async function CategoryPage({ params }) {
       <StructuredData data={jsonLd} />
       <PublicHeader categories={categories || []} />
 
-      <main className="w-full max-w-6xl mx-auto px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{category.name}</h1>
-          <p className="text-gray-600 dark:text-gray-400">Latest stories from {category.name}</p>
-        </div>
+      <main className="w-full max-w-6xl mx-auto px-4 py-10 md:py-12">
+        <section className="mb-10 rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_34%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] p-6 md:p-8 shadow-sm dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.14),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Category Front</p>
+              <h1 className="mt-2 text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">{category.name}</h1>
+              <p className="mt-4 max-w-2xl text-base md:text-lg text-gray-600 dark:text-gray-300">
+                {category.description || `Latest stories, explainers, and updates from ${category.name}.`}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2 text-orange-500 mb-3">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Category Snapshot</span>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">{count || 0}</p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">published stories in this section</p>
+            </div>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {trending.map((article) => (
-            <ArticleMiniCard key={article.id} article={article} />
-          ))}
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.35fr)_320px]">
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Coverage</p>
+                <h2 className="mt-1 text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Top stories in {category.name}</h2>
+              </div>
+              {totalPages > 1 && (
+                <Link href={`/category/${category.slug}/page/2`} className="hidden md:inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                  More stories <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {trending.map((article) => (
+                <ArticleMiniCard key={article.id} article={article} />
+              ))}
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Explore Sections</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(categories || []).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/category/${item.slug}`}
+                    className={`rounded-full border px-3 py-2 text-sm transition-colors ${item.slug === category.slug ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 bg-slate-950 p-6 text-white shadow-sm dark:border-white/10">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">Section Note</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                This page now behaves more like a category front on a major news site while keeping the same routing, SEO metadata, and pagination logic.
+              </p>
+            </div>
+          </aside>
         </div>
 
         {totalPages > 1 && (
@@ -96,4 +156,3 @@ export default async function CategoryPage({ params }) {
     </div>
   )
 }
-

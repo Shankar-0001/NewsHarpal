@@ -4,8 +4,23 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { apiResponse } from '@/lib/api-utils'
 import { validateFileUpload, sanitizeFilename } from '@/lib/security-utils'
+
+const MEDIA_SELECT = 'id, filename, file_url, file_type, file_size, uploaded_by, created_at'
+
+function deriveStoragePathFromUrl(fileUrl = '') {
+    try {
+        const url = new URL(fileUrl)
+        const marker = '/storage/v1/object/public/media/'
+        const index = url.pathname.indexOf(marker)
+        if (index === -1) return null
+        return decodeURIComponent(url.pathname.slice(index + marker.length))
+    } catch {
+        return null
+    }
+}
 
 /**
  * GET /api/media
@@ -24,7 +39,7 @@ export async function GET(request) {
         // Build query
         let query = supabase
             .from('media_library')
-            .select('id, filename, file_url, file_type, file_size, uploaded_by, storage_path, file_path, created_at, updated_at', { count: 'exact' })
+            .select(MEDIA_SELECT, { count: 'exact' })
 
         // Filter by file type
         if (type) {
@@ -81,6 +96,13 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const supabase = await createClient()
+        const adminSupabase = (() => {
+            try {
+                return createAdminClient()
+            } catch {
+                return null
+            }
+        })()
 
         // Check authentication
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -124,7 +146,8 @@ export async function POST(request) {
         const filePath = `media/${year}/${month}/${day}/${Date.now()}_${sanitized}`
 
         // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
+        const storageClient = adminSupabase || supabase
+        const { error: uploadError } = await storageClient.storage
             .from('media')
             .upload(filePath, file, {
                 cacheControl: '3600',
@@ -134,7 +157,7 @@ export async function POST(request) {
         if (uploadError) throw uploadError
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = storageClient.storage
             .from('media')
             .getPublicUrl(filePath)
 
@@ -163,7 +186,7 @@ export async function POST(request) {
                 file_size: file.size,
                 uploaded_by: user.id,
             })
-            .select('id, filename, file_url, file_type, file_size, uploaded_by, created_at, updated_at')
+            .select(MEDIA_SELECT)
 
         if (insertError) throw insertError
 
@@ -205,7 +228,7 @@ export async function DELETE(request) {
         // Fetch media record
         const { data: media, error: fetchError } = await supabase
             .from('media_library')
-            .select('id, filename, file_url, file_type, file_size, uploaded_by, storage_path, file_path, created_at, updated_at')
+            .select(MEDIA_SELECT)
             .eq('id', mediaId)
             .single()
 
@@ -228,10 +251,18 @@ export async function DELETE(request) {
         }
 
         // Delete from storage
-        const storagePath = media.storage_path || media.file_path || null
+        const storagePath = deriveStoragePathFromUrl(media.file_url)
 
         if (storagePath) {
-            const { error: deleteStorageError } = await supabase.storage
+            const storageClient = (() => {
+                try {
+                    return createAdminClient()
+                } catch {
+                    return supabase
+                }
+            })()
+
+            const { error: deleteStorageError } = await storageClient.storage
                 .from('media')
                 .remove([storagePath])
 
