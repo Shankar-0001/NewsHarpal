@@ -134,7 +134,7 @@ export default function FooterPagesEditor() {
           .getPublicUrl(filePath)
 
         if (user?.id) {
-          await supabase.from('media_library').insert({
+          const { error: insertError } = await supabase.from('media_library').insert({
             filename: file.name,
             file_url: publicUrl,
             file_path: filePath,
@@ -144,6 +144,11 @@ export default function FooterPagesEditor() {
             original_height: dimensions.height,
             uploaded_by: user.id,
           })
+
+          if (insertError) {
+            await supabase.storage.from('media').remove([filePath]).catch(() => {})
+            throw new Error(insertError.message || 'Failed to save media library metadata')
+          }
         }
 
         toast({

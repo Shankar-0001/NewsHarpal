@@ -17,7 +17,7 @@ import StickyShareBar from '@/components/article/StickyShareBar'
 import ArticleSummaryToggles from '@/components/article/ArticleSummaryToggles'
 import ArticleMiniCard from '@/components/content/ArticleMiniCard'
 import SafeHtml from '@/components/SafeHtml'
-import { buildLanguageAlternates, getArticleCanonicalUrl, slugFromText } from '@/lib/site-config'
+import { buildLanguageAlternates, getArticleCanonicalUrl, SITE_URL, slugFromText } from '@/lib/site-config'
 import { buildArticleKeywords, keywordsToMetadataValue, keywordsToTopicLinks } from '@/lib/keywords'
 import { parseStructuredDataOverride } from '@/lib/seo-utils'
 
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }) {
       }
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
+    const siteUrl = SITE_URL
     const articleUrl = getArticleCanonicalUrl(article)
     const keywords = buildArticleKeywords(article)
     const authorLinkSlug = article.authors?.slug
@@ -138,7 +138,7 @@ export default async function ArticlePage({ params }) {
   try {
     const supabase = await createClient()
     const { categorySlug, articleSlug } = params
-    const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
+    const siteUrl = SITE_URL
 
     const { data: article } = await supabase
       .from('articles')
@@ -459,8 +459,8 @@ export default async function ArticlePage({ params }) {
                           alt={article.featured_image_alt || article.title}
                           fill
                           className="object-cover"
-                          priority
                           sizes="(max-width: 768px) 100vw, 760px"
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -575,3 +575,4 @@ export default async function ArticlePage({ params }) {
     notFound()
   }
 }
+

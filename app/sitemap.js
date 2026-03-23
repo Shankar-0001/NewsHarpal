@@ -1,11 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { getArticleCanonicalUrl } from '@/lib/site-config'
+import { getArticleCanonicalUrl, SITE_URL } from '@/lib/site-config'
 
 export const revalidate = 3600
 
 export default async function sitemap() {
   const supabase = await createClient()
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
 
   const [
     { data: categories },
@@ -41,14 +40,14 @@ export default async function sitemap() {
     : { data: [] }
 
   const categoryHubEntries = categories?.map((category) => ({
-    url: `${siteUrl}/category/${category.slug}`,
+    url: `${SITE_URL}/category/${category.slug}`,
     lastModified: new Date(category.updated_at),
     changeFrequency: 'daily',
     priority: 0.7,
   })) || []
 
   const tagEntries = tags?.map((tag) => ({
-    url: `${siteUrl}/tags/${tag.slug}`,
+    url: `${SITE_URL}/tags/${tag.slug}`,
     lastModified: new Date(tag.updated_at),
     changeFrequency: 'weekly',
     priority: 0.5,
@@ -62,7 +61,7 @@ export default async function sitemap() {
   })) || []
 
   const storyEntries = stories?.map((story) => ({
-    url: `${siteUrl}/web-stories/${story.slug}`,
+    url: `${SITE_URL}/web-stories/${story.slug}`,
     lastModified: new Date(story.updated_at || story.published_at || Date.now()),
     changeFrequency: 'daily',
     priority: 0.6,
@@ -70,55 +69,55 @@ export default async function sitemap() {
 
   return [
     {
-      url: siteUrl,
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1.0,
     },
     {
-      url: `${siteUrl}/web-stories`,
+      url: `${SITE_URL}/web-stories`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.6,
     },
     {
-      url: `${siteUrl}/about-us`,
+      url: `${SITE_URL}/about-us`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${siteUrl}/editorial-policy`,
+      url: `${SITE_URL}/editorial-policy`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${siteUrl}/contact`,
+      url: `${SITE_URL}/contact`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${siteUrl}/corrections-policy`,
+      url: `${SITE_URL}/corrections-policy`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.4,
     },
     {
-      url: `${siteUrl}/advertise`,
+      url: `${SITE_URL}/advertise`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
-      url: `${siteUrl}/privacy`,
+      url: `${SITE_URL}/privacy`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
-      url: `${siteUrl}/terms`,
+      url: `${SITE_URL}/terms`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,

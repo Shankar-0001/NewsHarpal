@@ -77,7 +77,7 @@ export async function POST(request) {
         const { data, error } = await supabase
             .from('article_tags')
             .insert(tagRelations)
-            .select('id, article_id, tag_id, created_at')
+            .select('article_id, tag_id')
 
         if (error) {
             return apiResponse(500, null, error.message)

@@ -1,16 +1,55 @@
 import { createClient } from '@/lib/supabase/server'
-import { sitemapIndexXml, xmlResponse } from '@/lib/sitemap-utils'
+import { absoluteUrl } from '@/lib/site-config'
+import { urlsetXml, xmlResponse } from '@/lib/sitemap-utils'
 
-const PAGE_SIZE = 1200
+const MAX_URLS = 50000
+const MIN_MATCH_COUNT = 3
+
+function keywordPattern(slug = '') {
+  const cleaned = String(slug)
+    .replace(/-/g, ' ')
+    .replace(/[^a-z0-9\s-]/gi, ' ')
+    .trim()
+
+  if (!cleaned) return null
+  return `%${cleaned}%`
+}
 
 export async function GET() {
   const supabase = await createClient()
-  const { count } = await supabase
+  const { data: trendRows } = await supabase
     .from('trending_topics')
-    .select('slug', { count: 'exact', head: true })
+    .select('slug, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(MAX_URLS)
 
-  const totalPages = Math.max(1, Math.ceil((count || 0) / PAGE_SIZE))
-  const paths = Array.from({ length: totalPages }, (_, idx) => `/sitemaps/topics/${idx + 1}.xml`)
-  return xmlResponse(sitemapIndexXml(paths))
+  const eligibleRows = await Promise.all((trendRows || []).map(async (row) => {
+    if (!row?.slug) return null
+
+    const pattern = keywordPattern(row.slug)
+    if (!pattern) return null
+
+    const { count, error } = await supabase
+      .from('articles')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published')
+      .or(`title.ilike.${pattern},excerpt.ilike.${pattern}`)
+
+    if (error || (count || 0) < MIN_MATCH_COUNT) {
+      return null
+    }
+
+    return row
+  }))
+
+  const entries = eligibleRows
+    .filter(Boolean)
+    .map((row) => ({
+      loc: absoluteUrl(`/topic/${row.slug}`),
+      lastmod: new Date(row.updated_at || Date.now()).toISOString(),
+      changefreq: 'weekly',
+      priority: 0.7,
+    }))
+
+  return xmlResponse(urlsetXml(entries))
 }
-

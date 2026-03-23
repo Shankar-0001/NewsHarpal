@@ -2,9 +2,15 @@ import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { apiResponse } from '@/lib/api-utils'
+import { checkRateLimit, getClientIp, isSameOriginMutation } from '@/lib/request-guards'
 
 const sanitizeNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
 const COOKIE_TTL_SECONDS = 60 * 60 * 12
+const RATE_LIMITS = {
+  view: { limit: 30, windowMs: 60_000 },
+  like: { limit: 12, windowMs: 60_000 },
+  share: { limit: 12, windowMs: 60_000 },
+}
 
 async function getCurrentMetrics(supabase, articleId) {
   const { data } = await supabase
@@ -35,12 +41,39 @@ export async function GET(_request, { params }) {
 
 export async function POST(request, { params }) {
   try {
+    if (!isSameOriginMutation(request)) {
+      return apiResponse(403, null, 'Cross-origin requests are not allowed')
+    }
+
     const articleId = params?.id
     if (!articleId) return apiResponse(400, null, 'Article ID is required')
 
     const { action } = await request.json()
     if (!['view', 'like', 'share'].includes(action)) {
       return apiResponse(400, null, 'Invalid action')
+    }
+
+    const rateResult = checkRateLimit({
+      key: `${getClientIp(request)}:article:${action}:${articleId}`,
+      ...RATE_LIMITS[action],
+    })
+
+    if (!rateResult.allowed) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: 429,
+          error: 'Too many engagement requests. Please try again shortly.',
+          timestamp: new Date().toISOString(),
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(Math.max(1, Math.ceil((rateResult.resetAt - Date.now()) / 1000))),
+          },
+        }
+      )
     }
 
     const cookieStore = cookies()

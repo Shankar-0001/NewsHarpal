@@ -3,13 +3,12 @@
 import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
 import StructuredData, { BreadcrumbSchema } from '@/components/seo/StructuredData'
+import { SITE_URL } from '@/lib/site-config'
 
 export default function Breadcrumb({ items }) {
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
-  
   const schemaItems = [
-    { name: 'Home', url: siteUrl },
-    ...items.map(item => ({ name: item.label, url: `${siteUrl}${item.href}` }))
+    { name: 'Home', url: SITE_URL },
+    ...items.map((item) => ({ name: item.label, url: `${SITE_URL}${item.href}` })),
   ]
 
   return (
@@ -35,4 +34,3 @@ export default function Breadcrumb({ items }) {
     </>
   )
 }
-

@@ -132,30 +132,52 @@ export default async function ExplainedKeywordPage({ params }) {
     articlesQuery.or(`title.ilike.${pattern},excerpt.ilike.${pattern}`)
   }
 
-  const [{ data: categories }, { data: articles }, { data: engagementRows }] = await Promise.all([
+  const [{ data: categories }, { data: articles }, { data: engagementRows }, { data: trendRow }] = await Promise.all([
     supabase.from('categories').select('id, name, slug').order('name'),
     articlesQuery,
     supabase.from('article_engagement').select('article_id, views, likes, shares').limit(10),
+    supabase.from('trending_topics').select('slug').eq('slug', normalized).maybeSingle(),
   ])
 
   const matched = articles || []
-  if (matched.length < MIN_MATCH_COUNT) notFound()
+  if (!trendRow && matched.length < MIN_MATCH_COUNT) notFound()
 
-  const explainers = makeExplainers(matched, keyword)
+  let fallbackArticles = []
+  if (matched.length < MIN_MATCH_COUNT) {
+    const { data: latestArticles } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, content, featured_image_url, published_at, categories(name, slug)')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(12)
+    fallbackArticles = latestArticles || []
+  }
+
+  const baseArticles = matched.length >= MIN_MATCH_COUNT ? matched : fallbackArticles
+  const explainers = makeExplainers(baseArticles, keyword)
   const scoreMap = new Map((engagementRows || []).map((row) => [row.article_id, (row.views || 0) + (row.likes || 0) * 3 + (row.shares || 0) * 5]))
-  const trending = [...matched]
+  const trending = [...baseArticles]
     .map((item) => ({ ...item, _score: scoreMap.get(item.id) || 0 }))
     .sort((a, b) => b._score - a._score)
     .slice(0, 6)
 
+  const pageUrl = absoluteUrl(`/explained/${normalized}`)
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: explainers.map((item) => ({
-      '@type': 'Question',
-      name: item.title,
-      acceptedAnswer: { '@type': 'Answer', text: item.point },
-    })),
+    '@type': 'CollectionPage',
+    name: `${keyword} Explained`,
+    url: pageUrl,
+    description: `Simple explainers and latest context for ${keyword}, with linked source articles.`,
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: explainers.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: absoluteUrl(`/${item.categorySlug}/${item.slug}`),
+        name: item.title,
+        description: item.point,
+      })),
+    },
   }
 
   return (
@@ -164,7 +186,11 @@ export default async function ExplainedKeywordPage({ params }) {
       <PublicHeader categories={categories || []} />
       <main className="w-full max-w-6xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">{keyword} Explained</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">Fast context and explainers linked to full coverage.</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-8">
+          {matched.length >= MIN_MATCH_COUNT
+            ? 'Fast context and explainers linked to full coverage.'
+            : `We are still building deep explainers for ${keyword}. Here is the latest related coverage in the meantime.`}
+        </p>
 
         <section className="mb-10 rounded-xl bg-white dark:bg-gray-800 p-6 border dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Key Explainers</h2>
@@ -188,6 +214,3 @@ export default async function ExplainedKeywordPage({ params }) {
     </div>
   )
 }
-
-
-

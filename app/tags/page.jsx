@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import PublicHeader from '@/components/layout/PublicHeader'
-import ArticleMiniCard from '@/components/content/ArticleMiniCard'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 export const revalidate = 900
@@ -10,7 +10,7 @@ export default async function TagsIndexPage() {
 
   const [{ data: categories }, { data: tags }] = await Promise.all([
     supabase.from('categories').select('id, name, slug').order('name'),
-    supabase.from('tags').select('id, name, slug').order('name').limit(10),
+    supabase.from('tags').select('id, name, slug').order('name'),
   ])
 
   if (!tags) {
@@ -25,13 +25,13 @@ export default async function TagsIndexPage() {
         <p className="text-gray-600 dark:text-gray-400 mb-6">Browse all tags</p>
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <a
+            <Link
               key={tag.id}
               href={`/tags/${tag.slug}`}
               className="px-3 py-1.5 rounded-full border text-sm text-blue-700 dark:text-blue-300 hover:underline"
             >
               {tag.name}
-            </a>
+            </Link>
           ))}
         </div>
       </main>

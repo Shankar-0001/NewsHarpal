@@ -145,6 +145,7 @@ export default function CategoriesPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Category</DialogTitle>
+              <DialogDescription className="sr-only">Add a new category with an optional description for organizing articles.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -176,6 +177,7 @@ export default function CategoriesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription className="sr-only">Update the category name and description used across the site.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -255,3 +257,4 @@ export default function CategoriesPage() {
     </div>
   )
 }
+

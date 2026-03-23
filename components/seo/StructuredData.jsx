@@ -23,9 +23,9 @@ export function NewsArticleSchema({
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: title,
-    description: description,
+    description,
     image: image ? [image] : [],
-    datePublished: datePublished,
+    datePublished,
     dateModified: dateModified || datePublished,
     author: {
       '@type': 'Person',
@@ -91,18 +91,15 @@ export function OrganizationSchema() {
 }
 
 export function WebSiteSchema() {
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
-
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'EkahNews',
-    url: siteUrl,
+    url: SITE_URL,
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${siteUrl}/search?q={search_term_string}`,
+      target: `${SITE_URL}/search?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   }
 }
-

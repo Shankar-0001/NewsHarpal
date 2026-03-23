@@ -274,7 +274,8 @@ export default function EditArticlePage() {
                 })
 
                 if (insertError) {
-                    console.warn('Failed to save media library record:', insertError)
+                    await supabase.storage.from('media').remove([filePath]).catch(() => {})
+                    throw new Error(insertError.message || 'Failed to save media library metadata')
                 }
 
                 toast({
@@ -610,6 +611,22 @@ export default function EditArticlePage() {
                     </CardHeader>
                     <CardContent>
                         <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                    const url = await handleImageUpload(file)
+                                    if (url) {
+                                        setFeaturedImage(url)
+                                        if (!featuredImageAlt && title) {
+                                            setFeaturedImageAlt(title)
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                        <Input
                             type="text"
                             placeholder="Image URL..."
                             value={featuredImage}
@@ -623,6 +640,15 @@ export default function EditArticlePage() {
                                 placeholder="Describe the image for accessibility and SEO"
                             />
                         </div>
+                        {featuredImage && (
+                            <div className="mt-4 relative w-full h-48 rounded-lg overflow-hidden border">
+                                <img
+                                    src={featuredImage}
+                                    alt={featuredImageAlt || title || 'Featured image'}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

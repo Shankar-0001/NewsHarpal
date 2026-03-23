@@ -4,7 +4,7 @@ import StructuredData from '@/components/seo/StructuredData'
 import ArticleMiniCard from '@/components/content/ArticleMiniCard'
 import WebStoryCard from '@/components/content/WebStoryCard'
 import { absoluteUrl, buildLanguageAlternates, slugFromText } from '@/lib/site-config'
-import { permanentRedirect, redirect } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -141,7 +141,7 @@ export default async function TrendingKeywordPage({ params }) {
   const pattern = keywordPattern(keyword)
 
   if (!normalizedRequested || !pattern) {
-    redirect('/')
+    notFound()
   }
   if (normalizedRequested !== keywordSlug) {
     permanentRedirect(`/trending/${normalizedRequested}`)
@@ -174,21 +174,33 @@ export default async function TrendingKeywordPage({ params }) {
   const relatedByKeyword = matchedArticles || []
 
   if (!trendKeyword && relatedByKeyword.length < MIN_MATCH_COUNT) {
-    redirect('/')
+    notFound()
   }
 
+  let fallbackArticles = []
+  if (relatedByKeyword.length < MIN_MATCH_COUNT) {
+    const { data: latestFallback } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, featured_image_url, published_at, categories(name, slug), authors(name)')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(12)
+    fallbackArticles = latestFallback || []
+  }
+
+  const baseArticles = relatedByKeyword.length >= MIN_MATCH_COUNT ? relatedByKeyword : fallbackArticles
   const scoreMap = new Map((engagementRows || []).map((row) => [row.article_id, (row.views || 0) + (row.likes || 0) * 3 + (row.shares || 0) * 5]))
 
-  const trendingArticles = [...relatedByKeyword]
+  const trendingArticles = [...baseArticles]
     .map((a) => ({ ...a, _score: scoreMap.get(a.id) || 0 }))
     .sort((a, b) => b._score - a._score)
     .slice(0, 12)
 
-  const latestArticles = [...relatedByKeyword]
+  const latestArticles = [...baseArticles]
     .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
     .slice(0, 8)
 
-  const explainedArticles = relatedByKeyword
+  const explainedArticles = baseArticles
     .filter((a) => /explain|guide|what is|how to|analysis/i.test(`${a.title || ''} ${a.excerpt || ''}`))
     .slice(0, 6)
 
@@ -210,9 +222,9 @@ export default async function TrendingKeywordPage({ params }) {
     explainedArticles,
     trendingArticles,
     stories: relatedStories,
-  }).slice(0, 20)
+  }).slice(0, 8)
 
-  const finalLinks = internalLinks.length >= 10
+  const finalLinks = internalLinks.length >= 6
     ? internalLinks
     : [
         ...internalLinks,
@@ -231,7 +243,7 @@ export default async function TrendingKeywordPage({ params }) {
   ]
 
   for (const link of fillerLinks) {
-    if (finalLinks.length >= 10) break
+    if (finalLinks.length >= 8) break
     if (!finalLinks.find((l) => l.href === link.href)) {
       finalLinks.push(link)
     }
@@ -269,7 +281,9 @@ export default async function TrendingKeywordPage({ params }) {
               {keyword} Trends
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              Real-time coverage, explainers, and related content around {keyword}.
+              {relatedByKeyword.length >= MIN_MATCH_COUNT
+                ? `Real-time coverage, explainers, and related content around ${keyword}.`
+                : `We are tracking ${keyword}. Here is the latest coverage while deeper trend-specific matches build up.`}
             </p>
           </div>
         </section>
@@ -320,9 +334,9 @@ export default async function TrendingKeywordPage({ params }) {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Internal Links</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Related Coverage</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {finalLinks.slice(0, 20).map((item, idx) => (
+            {finalLinks.slice(0, 8).map((item, idx) => (
               <Link key={`${item.href}-${idx}`} href={item.href} className="text-blue-600 dark:text-blue-400 hover:underline">
                 {item.label}
               </Link>
@@ -333,5 +347,3 @@ export default async function TrendingKeywordPage({ params }) {
     </div>
   )
 }
-
-

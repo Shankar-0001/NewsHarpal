@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { SITE_URL } from '@/lib/site-config'
 
 export const dynamic = 'force-dynamic'
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
 const NEWS_WINDOW_MS = 48 * 60 * 60 * 1000
 const MAX_URLS = 1000
 

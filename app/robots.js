@@ -1,6 +1,6 @@
-export default function robots() {
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
+import { SITE_URL } from '@/lib/site-config'
 
+export default function robots() {
   return {
     rules: [
       {
@@ -15,14 +15,12 @@ export default function robots() {
       },
     ],
     sitemap: [
-      `${siteUrl}/sitemap.xml`,
-      `${siteUrl}/article-sitemap.xml`,
-      `${siteUrl}/news-sitemap.xml`,
-      `${siteUrl}/category-sitemap.xml`,
-      `${siteUrl}/topic-sitemap.xml`,
-      `${siteUrl}/web-stories-sitemap.xml`,
+      `${SITE_URL}/sitemap.xml`,
+      `${SITE_URL}/article-sitemap.xml`,
+      `${SITE_URL}/news-sitemap.xml`,
+      `${SITE_URL}/category-sitemap.xml`,
+      `${SITE_URL}/topic-sitemap.xml`,
+      `${SITE_URL}/web-stories-sitemap.xml`,
     ],
   }
 }
-
-

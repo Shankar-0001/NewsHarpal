@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -264,6 +265,9 @@ export default function TipTapEditor({ content, onChange, onImageUpload }) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Insert Link</DialogTitle>
+              <DialogDescription className="sr-only">
+                Add a URL and choose whether the link should open in a new tab.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -299,6 +303,9 @@ export default function TipTapEditor({ content, onChange, onImageUpload }) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Insert Image</DialogTitle>
+              <DialogDescription className="sr-only">
+                Upload an image or provide an image URL and required alt text.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -343,6 +350,9 @@ export default function TipTapEditor({ content, onChange, onImageUpload }) {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Embed YouTube Video</DialogTitle>
+              <DialogDescription className="sr-only">
+                Paste a YouTube URL to embed the video in the article content.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>

@@ -11,14 +11,14 @@ import Image from 'next/image'
 import { calculateReadingTime } from '@/lib/content-utils'
 import ArticleMiniCard from '@/components/content/ArticleMiniCard'
 import WebStoryCard from '@/components/content/WebStoryCard'
-import { getPublicationLogoUrl } from '@/lib/site-config'
+import { getPublicationLogoUrl, SITE_URL } from '@/lib/site-config'
 
 // Revalidate homepage every 10 minutes (ISR)
 export const revalidate = 600
 const HOMEPAGE_CATEGORY_LIMIT = 6
 const CATEGORY_ARTICLE_LIMIT = 5
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'
+const siteUrl = SITE_URL
 const ogImage = getPublicationLogoUrl()
 
 export const metadata = {
@@ -701,3 +701,4 @@ export default async function HomePage() {
     </>
   )
 }
+

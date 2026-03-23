@@ -250,7 +250,8 @@ export default function ArticleEditorPage() {
         })
 
         if (insertError) {
-          console.warn('Failed to save media library record:', insertError)
+          await supabase.storage.from('media').remove([filePath]).catch(() => {})
+          throw new Error(insertError.message || 'Failed to save media library metadata')
         }
 
         toast({
@@ -893,7 +894,7 @@ export default function ArticleEditorPage() {
                   <SafeHtml
                     html={content.html}
                     className="prose dark:prose-invert max-w-none"
-                    baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'}
+                    baseUrl={process.env.NEXT_PUBLIC_BASE_URL || 'https://www.ekahnews.com'}
                   />
                 </div>
               </DialogContent>
@@ -904,5 +905,6 @@ export default function ArticleEditorPage() {
     </div>
   )
 }
+
 
 

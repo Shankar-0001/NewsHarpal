@@ -1,13 +1,13 @@
 import './globals.css'
 import SiteFooter from '@/components/layout/SiteFooter'
-import { getPublicationLogoUrl } from '@/lib/site-config'
+import { getPublicationLogoUrl, SITE_URL } from '@/lib/site-config'
 import RootProviders from '@/components/layout/RootProviders'
 import OptionalGlobalScripts from '@/components/layout/OptionalGlobalScripts'
 
 export const metadata = {
   title: 'EkahNews - Latest News and Insights',
   description: 'Your trusted source for breaking news, trending stories, and expert insights.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://ekahnews.com'),
+  metadataBase: new URL(SITE_URL),
   icons: {
     icon: getPublicationLogoUrl(),
     shortcut: getPublicationLogoUrl(),
@@ -29,9 +29,6 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <meta name="robots" content="max-image-preview:large" />
-      </head>
       <body className="font-sans">
         <OptionalGlobalScripts />
         <RootProviders>

@@ -11,26 +11,12 @@ function toPageNumber(raw) {
 }
 
 function buildTopicEntries(slug, lastmod, priority = 0.6) {
-  return [
-    {
-      loc: absoluteUrl(`/topic/${slug}`),
-      lastmod,
-      changefreq: 'weekly',
-      priority,
-    },
-    {
-      loc: absoluteUrl(`/trending/${slug}`),
-      lastmod,
-      changefreq: 'daily',
-      priority: Math.max(priority, 0.7),
-    },
-    {
-      loc: absoluteUrl(`/explained/${slug}`),
-      lastmod,
-      changefreq: 'weekly',
-      priority,
-    },
-  ]
+  return [{
+    loc: absoluteUrl(`/topic/${slug}`),
+    lastmod,
+    changefreq: 'weekly',
+    priority,
+  }]
 }
 
 function keywordPattern(slug = '') {
@@ -74,7 +60,7 @@ export async function GET(_request, context) {
     return row
   }))
 
-  const trendEntries = eligibleRows
+  const topicEntries = eligibleRows
     .filter(Boolean)
     .flatMap((row) =>
       buildTopicEntries(
@@ -85,7 +71,7 @@ export async function GET(_request, context) {
     )
 
   const dedup = new Map()
-  for (const entry of trendEntries) {
+  for (const entry of topicEntries) {
     if (!dedup.has(entry.loc)) {
       dedup.set(entry.loc, entry)
     }
@@ -93,3 +79,5 @@ export async function GET(_request, context) {
 
   return xmlResponse(urlsetXml([...dedup.values()]))
 }
+
+

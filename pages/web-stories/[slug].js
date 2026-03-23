@@ -164,10 +164,12 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
         <meta property="og:description" content={description} />
         <meta property="og:url" content={canonical} />
         {story.cover_image ? <meta property="og:image" content={story.cover_image} /> : null}
+        {story.cover_image_alt ? <meta property="og:image:alt" content={story.cover_image_alt} /> : null}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={story.seo_title || story.title} />
         <meta name="twitter:description" content={description} />
         {story.cover_image ? <meta name="twitter:image" content={story.cover_image} /> : null}
+        {story.cover_image_alt ? <meta name="twitter:image:alt" content={story.cover_image_alt} /> : null}
         <link rel="canonical" href={canonical} />
         <script async key="amp-story" custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js" />
         {gaMeasurementId ? <script async key="amp-analytics" custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js" /> : null}
@@ -246,8 +248,19 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
             letter-spacing: 0.08em;
             text-decoration: none;
           }
-          .cta-button.whatsapp {
-            background: #16a34a;
+          .cta-hint {
+            display: inline-block;
+            background: rgba(37, 99, 235, 0.92);
+            color: #fff;
+            padding: 14px 22px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+          }
+          .cta-hint.whatsapp {
+            background: rgba(22, 163, 74, 0.92);
           }
         `}</style>
       </Head>
@@ -294,9 +307,10 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
                     <h2 className="cta-title">{slide.headline || story.title}</h2>
                     <p className="cta-copy">{slide.description || description}</p>
                     {ctaHref ? (
-                      <a className={`cta-button${slide?.whatsapp_group_url ? ' whatsapp' : ''}`} href={ctaHref}>
-                        {ctaText}
-                      </a>
+                      <>
+                        <p className={`cta-hint${slide?.whatsapp_group_url ? ' whatsapp' : ''}`}>{ctaText}</p>
+                        <amp-story-page-outlink layout="nodisplay" href={ctaHref} />
+                      </>
                     ) : null}
                   </div>
                 )}

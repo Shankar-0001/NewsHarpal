@@ -98,6 +98,7 @@ export default function TagsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Tag</DialogTitle>
+              <DialogDescription className="sr-only">Create a reusable tag to classify related articles.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -148,3 +149,4 @@ export default function TagsPage() {
     </div>
   )
 }
+

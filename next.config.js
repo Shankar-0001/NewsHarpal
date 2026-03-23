@@ -21,7 +21,7 @@ function buildCsp() {
     "style-src 'self' 'unsafe-inline' https:",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
-    "connect-src " + connectSrc,
+    'connect-src ' + connectSrc,
     "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
     "media-src 'self' blob: https:",
     "worker-src 'self' blob:",
@@ -47,37 +47,44 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // Remove if not using Server Components
     serverComponentsExternalPackages: ['mongodb'],
   },
   webpack(config, { dev }) {
     if (dev) {
-      // Reduce CPU/memory from file watching
       config.watchOptions = {
-        poll: 2000, // check every 2 seconds
-        aggregateTimeout: 300, // wait before rebuilding
+        poll: 2000,
+        aggregateTimeout: 300,
         ignored: ['**/node_modules'],
-      };
+      }
     }
-    return config;
+    return config
   },
   onDemandEntries: {
     maxInactiveAge: 10000,
     pagesBufferLength: 2,
   },
   async headers() {
+    const headers = [
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'Content-Security-Policy', value: buildCsp() },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+      { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+    ]
+
+    if (process.env.NODE_ENV === 'production') {
+      headers.push({ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' })
+    }
+
     return [
       {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Content-Security-Policy", value: buildCsp() },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ],
+        source: '/(.*)',
+        headers,
       },
-    ];
+    ]
   },
-};
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

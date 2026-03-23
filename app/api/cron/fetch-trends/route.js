@@ -29,9 +29,7 @@ export async function GET(request) {
       slug: item.slug,
       search_volume: Math.max(0, item.search_volume || 0),
       created_at: item.created_at || now,
-      source: item.traffic_raw
-        ? `google-trends-rss:${item.traffic_raw}`
-        : `google-trends-rss:${(item.geos || []).join(',') || 'unknown'}`,
+
       updated_at: now,
     }))
 
@@ -72,6 +70,8 @@ export async function GET(request) {
     return apiResponse(500, null, error.message || 'Failed to fetch trends')
   }
 }
+
+
 
 
 

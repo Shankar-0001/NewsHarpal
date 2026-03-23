@@ -9,7 +9,7 @@ import { apiResponse } from '@/lib/api-utils'
 import { requireAuth } from '@/lib/auth-utils'
 import { validateFileUpload, sanitizeFilename } from '@/lib/security-utils'
 
-const MEDIA_SELECT = 'id, filename, file_url, file_type, file_size, uploaded_by, created_at'
+const MEDIA_SELECT = 'id, filename, file_url, file_path, file_type, file_size, original_width, original_height, uploaded_by, created_at'
 
 function deriveStoragePathFromUrl(fileUrl = '') {
     try {
@@ -193,8 +193,11 @@ export async function POST(request) {
             .insert({
                 filename: sanitized,
                 file_url: publicUrl,
+                file_path: filePath,
                 file_type: file.type,
                 file_size: file.size,
+                original_width: dimensions?.width || null,
+                original_height: dimensions?.height || null,
                 uploaded_by: user.id,
             })
             .select(MEDIA_SELECT)
@@ -303,3 +306,4 @@ export async function DELETE(request) {
         })
     }
 }
+
