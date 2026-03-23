@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
-import slugify from 'slugify'
+import { createSlug } from '@/lib/slug'
 import { validateImageFile } from '@/lib/image-utils'
 
 export default function AuthorSettingsPage() {
@@ -105,7 +105,7 @@ export default function AuthorSettingsPage() {
 
     setSaving(true)
     try {
-      const nextSlug = slug || slugify(name, { lower: true, strict: true })
+      const nextSlug = slug || createSlug(name)
       const payload = {
         name: name.trim(),
         slug: nextSlug,

@@ -33,7 +33,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { X, Eye, Save, Trash2, AlertTriangle } from 'lucide-react'
-import slugify from 'slugify'
+import { createSlug } from '@/lib/slug'
 import Link from 'next/link'
 
 export default function EditArticlePage() {
@@ -188,8 +188,8 @@ export default function EditArticlePage() {
 
     const handleTitleChange = (newTitle) => {
         setTitle(newTitle)
-        if (!slug || slug === slugify(article?.title || '', { lower: true, strict: true })) {
-            setSlug(slugify(newTitle, { lower: true, strict: true }))
+        if (!slug || slug === createSlug(article?.title || '')) {
+            setSlug(createSlug(newTitle))
         }
     }
 
@@ -329,7 +329,7 @@ export default function EditArticlePage() {
 
             const articleData = {
                 title: title.trim(),
-                slug: slug || slugify(title, { lower: true, strict: true }),
+                slug: slug || createSlug(title),
                 excerpt: excerpt.trim(),
                 content: content.html,
                 content_json: content.json,
@@ -535,7 +535,7 @@ export default function EditArticlePage() {
                             <Input
                                 placeholder="article-url-slug"
                                 value={slug}
-                                onChange={(e) => setSlug(slugify(e.target.value, { lower: true, strict: true }))}
+                                onChange={(e) => setSlug(createSlug(e.target.value))}
                             />
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Preview: <span className="font-mono text-blue-600">/{previewCategorySlug}/{slug || 'article-slug'}</span>

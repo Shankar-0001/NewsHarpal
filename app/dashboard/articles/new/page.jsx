@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Eye, Save, Send, CheckCircle, AlertTriangle } from 'lucide-react'
-import slugify from 'slugify'
+import { createSlug } from '@/lib/slug'
 
 const TipTapEditor = dynamic(() => import('@/components/editor/TipTapEditor'), {
   ssr: false,
@@ -169,8 +169,8 @@ export default function ArticleEditorPage() {
 
   const handleTitleChange = (newTitle) => {
     setTitle(newTitle)
-    if (!slug || slug === slugify((title || ''), { lower: true, strict: true })) {
-      setSlug(slugify(newTitle, { lower: true, strict: true }))
+    if (!slug || slug === createSlug(title || '')) {
+      setSlug(createSlug(newTitle))
     }
   }
 
@@ -309,7 +309,7 @@ export default function ArticleEditorPage() {
       const normalizedUpdatedAt = toIsoDateTime(updatedDate) || new Date().toISOString()
       const articleData = {
         title: title.trim(),
-        slug: slug || slugify(title, { lower: true, strict: true }),
+        slug: slug || createSlug(title),
         excerpt: excerpt.trim(),
         content: content.html,
         content_json: content.json,
@@ -402,7 +402,7 @@ export default function ArticleEditorPage() {
     const name = newTagName.trim()
     if (!name) return
 
-    const newSlug = slugify(name, { lower: true, strict: true })
+    const newSlug = createSlug(name)
     const response = await fetch('/api/articles/tags', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -542,7 +542,7 @@ export default function ArticleEditorPage() {
               <Input
                 placeholder={activeContent.slug}
                 value={slug}
-                onChange={(e) => setSlug(slugify(e.target.value, { lower: true, strict: true }))}
+                onChange={(e) => setSlug(createSlug(e.target.value))}
               />
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Preview: <span className="font-mono text-blue-600">/{previewCategorySlug}/{slug || 'article-slug'}</span>

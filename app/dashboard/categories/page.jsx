@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Edit, Trash } from 'lucide-react'
-import slugify from 'slugify'
+import { createSlug } from '@/lib/slug'
 import {
   Dialog,
   DialogContent,
@@ -64,7 +64,7 @@ export default function CategoriesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name,
-        slug: slugify(name, { lower: true, strict: true }),
+        slug: createSlug(name),
         description,
       }),
     })
@@ -95,7 +95,7 @@ export default function CategoriesPage() {
       body: JSON.stringify({
         id: editingCategoryId,
         name: editName,
-        slug: slugify(editName, { lower: true, strict: true }),
+        slug: createSlug(editName),
         description: editDescription,
       }),
     })

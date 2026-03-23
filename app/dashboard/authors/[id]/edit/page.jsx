@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Upload } from 'lucide-react'
 import Link from 'next/link'
-import slugify from 'slugify'
+import { createSlug } from '@/lib/slug'
 
 function normalizeExternalUrl(url) {
     const value = url?.trim()
@@ -77,8 +77,8 @@ export default function EditAuthorPage() {
 
     const handleNameChange = (newName) => {
         setName(newName)
-        if (!slug || slug === slugify(author?.name, { lower: true, strict: true })) {
-            setSlug(slugify(newName, { lower: true, strict: true }))
+        if (!slug || slug === createSlug(author?.name || '')) {
+            setSlug(createSlug(newName))
         }
     }
 
