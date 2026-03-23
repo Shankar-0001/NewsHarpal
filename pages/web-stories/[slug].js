@@ -22,6 +22,17 @@ function getSupabase() {
   })
 }
 
+function getProductionHostname() {
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL
+  if (!siteUrl) return ''
+
+  try {
+    return new URL(siteUrl).hostname
+  } catch {
+    return ''
+  }
+}
+
 function getSlides(story) {
   return Array.isArray(story?.slides) ? story.slides.filter((slide) => slide?.image) : []
 }
@@ -85,7 +96,20 @@ function buildSchemas(story, slides, canonical) {
   }
 }
 
-export async function getServerSideProps({ params, res }) {
+function buildAmpAnalyticsConfig(measurementId) {
+  return {
+    vars: {
+      gtag_id: measurementId,
+      config: {
+        [measurementId]: {
+          groups: 'default',
+        },
+      },
+    },
+  }
+}
+
+export async function getServerSideProps({ params, req, res }) {
   try {
     const supabase = getSupabase()
     const { data: story } = await supabase
@@ -100,11 +124,17 @@ export async function getServerSideProps({ params, res }) {
       return { notFound: true }
     }
 
+    const productionHostname = getProductionHostname()
+    const requestHostname = (req?.headers?.host || '').split(':')[0]
+    const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''
+    const shouldTrack = Boolean(gaMeasurementId && (!productionHostname || requestHostname === productionHostname))
+
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=86400')
 
     return {
       props: {
         story,
+        gaMeasurementId: shouldTrack ? gaMeasurementId : '',
       },
     }
   } catch {
@@ -112,7 +142,7 @@ export async function getServerSideProps({ params, res }) {
   }
 }
 
-export default function WebStoryAmpPage({ story }) {
+export default function WebStoryAmpPage({ story, gaMeasurementId }) {
   const slides = getSlides(story)
   const description = getDescription(story, slides)
   const canonical = getCanonical(story)
@@ -121,6 +151,7 @@ export default function WebStoryAmpPage({ story }) {
     ? absoluteUrl(`/${story.categories?.slug || 'news'}/${story.related_article_slug}`)
     : ''
   const schemas = buildSchemas(story, slides, canonical)
+  const analyticsConfig = gaMeasurementId ? buildAmpAnalyticsConfig(gaMeasurementId) : null
 
   return (
     <>
@@ -139,6 +170,7 @@ export default function WebStoryAmpPage({ story }) {
         {story.cover_image ? <meta name="twitter:image" content={story.cover_image} /> : null}
         <link rel="canonical" href={canonical} />
         <script async key="amp-story" custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js" />
+        {gaMeasurementId ? <script async key="amp-analytics" custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js" /> : null}
         <script key="schema-primary" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas.primary) }} />
         <script key="schema-breadcrumb" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas.breadcrumb) }} />
         <style amp-custom>{`
@@ -272,6 +304,12 @@ export default function WebStoryAmpPage({ story }) {
             </amp-story-page>
           )
         })}
+
+        {analyticsConfig ? (
+          <amp-analytics type="gtag" data-credentials="include">
+            <script type="application/json" dangerouslySetInnerHTML={{ __html: JSON.stringify(analyticsConfig) }} />
+          </amp-analytics>
+        ) : null}
       </amp-story>
     </>
   )
