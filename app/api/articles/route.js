@@ -1,9 +1,8 @@
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiResponse, logger } from '@/lib/api-utils'
 import { validateArticle, ValidationError } from '@/lib/validation'
-import { requireAuth, getUserAuthorId } from '@/lib/auth-utils'
+import { requireRequestAuth, getUserAuthorId } from '@/lib/auth-utils'
 import { sanitizeRichText } from '@/lib/security-utils'
 import { normalizeManualKeywords } from '@/lib/keywords'
 
@@ -40,7 +39,7 @@ export async function POST(request) {
   const requestId = 'POST-article'
 
   try {
-    const user = await requireAuth()
+    const user = await requireRequestAuth(request)
     logger.info(`[${requestId}] User authenticated`, { userId: user.userId })
 
     const articleData = await request.json()
@@ -48,7 +47,6 @@ export async function POST(request) {
     articleData.schema_type = articleData.schema_type || 'NewsArticle'
     validateArticle(articleData)
 
-    const supabase = await createClient()
     const admin = createAdminClient()
     let authorId = await getUserAuthorId(user.userId)
 

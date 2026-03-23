@@ -1,17 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiResponse } from '@/lib/api-utils'
+import { requireRequestAuth } from '@/lib/auth-utils'
 
 // DELETE - Delete all tags for an article
 export async function DELETE(request, { params }) {
     try {
-        const supabase = await createClient()
+        const user = await requireRequestAuth(request)
         const admin = createAdminClient()
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) {
-            return apiResponse(401, null, 'Unauthorized')
-        }
 
         const { id: articleId } = params
 
@@ -32,7 +27,7 @@ export async function DELETE(request, { params }) {
         const { data: userData } = await admin
             .from('users')
             .select('role')
-            .eq('id', user.id)
+            .eq('id', user.userId)
             .single()
 
         const isAdmin = userData?.role === 'admin'
@@ -41,7 +36,7 @@ export async function DELETE(request, { params }) {
             const { data: authorData } = await admin
                 .from('authors')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', user.userId)
                 .single()
 
             if (article.author_id !== authorData?.id) {

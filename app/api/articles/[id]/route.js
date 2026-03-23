@@ -1,9 +1,8 @@
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiResponse, logger } from '@/lib/api-utils'
 import { validateArticle, ValidationError } from '@/lib/validation'
-import { requireAuth, canEditArticle, canDeleteArticle } from '@/lib/auth-utils'
+import { requireRequestAuth, canEditArticle, canDeleteArticle } from '@/lib/auth-utils'
 import { sanitizeRichText } from '@/lib/security-utils'
 import { normalizeManualKeywords } from '@/lib/keywords'
 
@@ -40,7 +39,7 @@ export async function PATCH(request, { params }) {
   const requestId = `PATCH-article-${params.id}`
 
   try {
-    const user = await requireAuth()
+    const user = await requireRequestAuth(request)
     logger.info(`[${requestId}] User authenticated`, { userId: user.userId })
 
     const data = await request.json()
@@ -111,7 +110,7 @@ export async function DELETE(request, { params }) {
   const requestId = `DELETE-article-${params.id}`
 
   try {
-    const user = await requireAuth()
+    const user = await requireRequestAuth(request)
     logger.info(`[${requestId}] User authenticated`, { userId: user.userId })
 
     const canDelete = await canDeleteArticle(params.id, user)

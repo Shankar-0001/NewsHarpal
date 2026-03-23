@@ -1,19 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { apiResponse } from '@/lib/api-utils'
-import { requireAdmin } from '@/lib/auth-utils'
+import { requireAdmin, requireRequestAuth } from '@/lib/auth-utils'
 import { validateTag } from '@/lib/validation'
 
 // POST - Create article tag relationships
 export async function POST(request) {
     try {
-        const supabase = await createClient()
+        const user = await requireRequestAuth(request)
         const admin = createAdminClient()
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) {
-            return apiResponse(401, null, 'Unauthorized')
-        }
 
         const tagRelations = await request.json()
 
@@ -45,7 +39,7 @@ export async function POST(request) {
         const { data: userData } = await admin
             .from('users')
             .select('role')
-            .eq('id', user.id)
+            .eq('id', user.userId)
             .single()
 
         const isAdmin = userData?.role === 'admin'
@@ -54,7 +48,7 @@ export async function POST(request) {
             const { data: authorData } = await admin
                 .from('authors')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', user.userId)
                 .single()
 
             if (!authorData || authorData.id !== article.author_id) {
@@ -90,13 +84,8 @@ export async function POST(request) {
 // DELETE - Delete article tag relationship
 export async function DELETE(request) {
     try {
-        const supabase = await createClient()
+        const user = await requireRequestAuth(request)
         const admin = createAdminClient()
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) {
-            return apiResponse(401, null, 'Unauthorized')
-        }
 
         const { articleId } = await request.json()
 
@@ -117,7 +106,7 @@ export async function DELETE(request) {
         const { data: userData } = await admin
             .from('users')
             .select('role')
-            .eq('id', user.id)
+            .eq('id', user.userId)
             .single()
 
         const isAdmin = userData?.role === 'admin'
@@ -126,7 +115,7 @@ export async function DELETE(request) {
             const { data: authorData } = await admin
                 .from('authors')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', user.userId)
                 .single()
 
             if (!authorData || authorData.id !== article.author_id) {
@@ -153,7 +142,7 @@ export async function DELETE(request) {
 // PUT - Create tag
 export async function PUT(request) {
     try {
-        await requireAdmin()
+        await requireAdmin(request)
         const admin = createAdminClient()
 
         const { name, slug } = await request.json()
