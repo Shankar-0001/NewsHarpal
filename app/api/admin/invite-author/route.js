@@ -1,6 +1,5 @@
 import { apiResponse } from '@/lib/api-utils'
 import { requireAdmin } from '@/lib/auth-utils'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request) {
@@ -12,31 +11,29 @@ export async function POST(request) {
 
     const normalizedEmail = email.trim().toLowerCase()
     const displayName = (name || normalizedEmail.split('@')[0]).trim()
-
-    const supabase = await createClient()
     const admin = createAdminClient()
 
     // Always enforce author role for invited users.
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await admin
       .from('users')
       .select('id, role')
       .eq('email', normalizedEmail)
       .maybeSingle()
 
     if (existingUser?.id) {
-      await supabase
+      await admin
         .from('users')
         .update({ role: 'author' })
         .eq('id', existingUser.id)
 
-      const { data: existingAuthor } = await supabase
+      const { data: existingAuthor } = await admin
         .from('authors')
         .select('id')
         .eq('user_id', existingUser.id)
         .maybeSingle()
 
       if (!existingAuthor) {
-        await supabase
+        await admin
           .from('authors')
           .insert({
             user_id: existingUser.id,
@@ -63,4 +60,3 @@ export async function POST(request) {
     return apiResponse(500, null, error.message || 'Failed to invite author')
   }
 }
-

@@ -199,12 +199,6 @@ export default function EditArticlePage() {
         return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
     }
 
-    const getAuthHeaders = async () => {
-        const { data } = await supabase.auth.getSession()
-        const accessToken = data?.session?.access_token
-        return accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
-    }
-
     const handleImageUpload = (file) => {
         return new Promise(async (resolve) => {
             if (!file) {
@@ -355,10 +349,9 @@ export default function EditArticlePage() {
             }
 
             // Update via API proxy
-            const authHeaders = await getAuthHeaders()
             const response = await fetch(`/api/articles/${params.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(articleData),
             })
 
@@ -368,7 +361,7 @@ export default function EditArticlePage() {
                 throw new Error(result.error || 'Failed to update article')
             }
 
-            const deleteTagsResponse = await fetch(`/api/articles/${params.id}/tags`, { method: 'DELETE', headers: authHeaders })
+            const deleteTagsResponse = await fetch(`/api/articles/${params.id}/tags`, { method: 'DELETE' })
             if (!deleteTagsResponse.ok) {
                 const deletePayload = await deleteTagsResponse.json().catch(() => ({}))
                 throw new Error(deletePayload?.error || 'Failed to clear existing tags')
@@ -377,7 +370,7 @@ export default function EditArticlePage() {
             if (selectedTags.length > 0) {
                 const addTagsResponse = await fetch('/api/articles/tags', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(
                         selectedTags.map(tagId => ({ article_id: params.id, tag_id: tagId }))
                     ),
@@ -413,8 +406,7 @@ export default function EditArticlePage() {
         setError(null)
 
         try {
-            const authHeaders = await getAuthHeaders()
-            const response = await fetch(`/api/articles/${params.id}`, { method: 'DELETE', headers: authHeaders })
+            const response = await fetch(`/api/articles/${params.id}`, { method: 'DELETE' })
             const json = await response.json()
 
             if (!response.ok) {
@@ -453,10 +445,9 @@ export default function EditArticlePage() {
         if (!name) return
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-        const authHeaders = await getAuthHeaders()
         const response = await fetch('/api/articles/tags', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, slug }),
         })
 

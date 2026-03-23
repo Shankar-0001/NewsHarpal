@@ -180,12 +180,6 @@ export default function ArticleEditorPage() {
     return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
   }
 
-  const getAuthHeaders = async () => {
-    const { data } = await supabase.auth.getSession()
-    const accessToken = data?.session?.access_token
-    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
-  }
-
   const handleImageUpload = async (file) => {
     return new Promise(async (resolve) => {
       if (!file) {
@@ -334,10 +328,9 @@ export default function ArticleEditorPage() {
         author_id: selectedAuthorId || authorId,
       }
 
-      const authHeaders = await getAuthHeaders()
       const response = await fetch('/api/articles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(articleData),
       })
 
@@ -358,7 +351,7 @@ export default function ArticleEditorPage() {
 
         const tagsResponse = await fetch('/api/articles/tags', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(tagRelations),
         })
 
@@ -410,10 +403,9 @@ export default function ArticleEditorPage() {
     if (!name) return
 
     const newSlug = createSlug(name)
-    const authHeaders = await getAuthHeaders()
     const response = await fetch('/api/articles/tags', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, slug: newSlug }),
     })
     const result = await response.json()
