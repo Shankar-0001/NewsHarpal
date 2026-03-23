@@ -25,6 +25,7 @@ import KeywordInput from '@/components/dashboard/KeywordInput'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -879,6 +880,9 @@ export default function ArticleEditorPage() {
               <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{activeContent.preview}</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Preview how this {contentType === 'news' ? 'news story' : contentType} will appear before saving.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   {featuredImage && (
