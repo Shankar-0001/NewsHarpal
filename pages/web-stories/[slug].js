@@ -242,6 +242,7 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
   const analyticsConfig = gaMeasurementId ? buildAmpAnalyticsConfig(gaMeasurementId) : null
   const ampStoryAdsConfig = buildAmpStoryAdsConfig()
   const canShowStoryAds = Boolean(ampStoryAdsConfig && (slides.length + 1) >= 7)
+  const defaultOutlinkLabel = `Read full story: ${story.title}`
 
   return (
     <>
@@ -306,6 +307,9 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
           const mediaId = `media-${index + 2}`
           const ctaHref = slide?.whatsapp_group_url || slide?.cta_url || articleUrl || ''
           const ctaText = slide?.whatsapp_group_url ? 'Join WhatsApp Community' : (slide?.cta_text || 'Read Full Story')
+          const outlinkLabel = slide?.whatsapp_group_url
+            ? `Join WhatsApp community for ${story.title}`
+            : (slide?.cta_text ? `${slide.cta_text}: ${story.title}` : defaultOutlinkLabel)
 
           return (
             <amp-story-page id={pageId} key={pageId} auto-advance-after={isVideoSlide ? mediaId : '7s'}>
@@ -345,7 +349,7 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
 
               {ctaHref ? (
                 <amp-story-page-outlink layout="nodisplay">
-                  <a href={ctaHref} title={ctaText}>{ctaText}</a>
+                  <a href={ctaHref} title={outlinkLabel} aria-label={outlinkLabel}>{outlinkLabel}</a>
                 </amp-story-page-outlink>
               ) : null}
             </amp-story-page>
@@ -361,3 +365,5 @@ export default function WebStoryAmpPage({ story, gaMeasurementId }) {
     </>
   )
 }
+
+
